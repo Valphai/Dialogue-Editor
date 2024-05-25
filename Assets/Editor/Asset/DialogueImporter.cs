@@ -6,6 +6,9 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.AssetImporters;
 using UnityEngine;
+using Newtonsoft.Json;
+using Chocolate4.Dialogue.Runtime.Saving;
+using System.Collections.Generic;
 
 namespace Chocolate4.Dialogue.Edit.Asset
 {
@@ -19,10 +22,10 @@ namespace Chocolate4.Dialogue.Edit.Asset
             if (ctx == null)
                 throw new ArgumentNullException(nameof(ctx));
 
-            string text;
+            string json;
             try
             {
-                text = File.ReadAllText(ctx.assetPath);
+                json = File.ReadAllText(ctx.assetPath);
             }
             catch (Exception exception)
             {
@@ -30,35 +33,56 @@ namespace Chocolate4.Dialogue.Edit.Asset
                 return;
             }
 
-            // Create asset.
-            var asset = ScriptableObject.CreateInstance<DialogueEditorAsset>();
             var entitiesDatabase = ScriptableObject.CreateInstance<EntitiesHolder>();
 
-            // Parse JSON.
             try
             {
-                asset.LoadFromJson(text);
+                var asset = JsonConvert.DeserializeObject<DialogueAsset>(json);
+                asset.SituationData = ReadSituationJsons(ctx.assetPath);
             }
             catch (Exception exception)
             {
                 ctx.LogImportError($"Could not parse input actions in JSON format from '{ctx.assetPath}' ({exception})");
-                DestroyImmediate(asset);
                 return;
             }
 
-            // Force name of asset to be that on the file on disk instead of what may be serialized
-            // as the 'name' property in JSON.
-            asset.name = entitiesDatabase.associatedAssetName = Path.GetFileNameWithoutExtension(assetPath);
+            entitiesDatabase.associatedAssetName = Path.GetFileNameWithoutExtension(assetPath);
             entitiesDatabase.name = EntitiesHolder.DataBase;
 
             entitiesDatabase.Reload();
 
             var assetIcon = (Texture2D)EditorGUIUtility.Load(FilePathConstants.GetEditorVisualAssetPath(FilePathConstants.assetIcon));
             
-            // Add asset.
-            ctx.AddObjectToAsset("<root>", asset, assetIcon);
-            ctx.AddObjectToAsset("<entities>", entitiesDatabase);
-            ctx.SetMainObject(asset);
+            ctx.AddObjectToAsset("<root>", entitiesDatabase, assetIcon);
+        }
+
+        private List<SituationSaveData> ReadSituationJsons(string assetPath)
+        {
+            string situationsFolder = FilePathConstants.GetSituationsPathRelative(assetPath);
+
+            List<SituationSaveData> jsonObjects = new List<SituationSaveData>();
+            foreach (string filePath in Directory.EnumerateFiles(situationsFolder))
+            {
+                if (!Path.GetExtension(filePath).Equals(".json", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string jsonText = File.ReadAllText(filePath);
+
+                try
+                {
+                    var jsonObject = JsonConvert.DeserializeObject<SituationSaveData>(jsonText);
+
+                    jsonObjects.Add(jsonObject);
+                }
+                catch (JsonReaderException)
+                {
+                    Console.WriteLine($"Invalid JSON format in {filePath}.");
+                }
+            }
+
+            return jsonObjects;
         }
     }
 }

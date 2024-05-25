@@ -24,8 +24,8 @@ namespace Chocolate4.Dialogue.Tests.Utilities
             string path = 
                 FilePathConstants.Chocolate4 + FilePathConstants.DirSep + FilePathConstants.testCasesAsset;
             
-            DialogueEditorAsset asset =
-                Resources.Load<DialogueEditorAsset>(path);
+            DialogueAsset asset =
+                Resources.Load<DialogueAsset>(path);
 
             string fullAssetPath = UnityEditor.AssetDatabase.GetAssetPath(asset);
 

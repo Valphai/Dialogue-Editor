@@ -4,8 +4,6 @@ using Chocolate4.Dialogue.Edit.Graph;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
-using Chocolate4.Dialogue.Edit.Saving;
-using Chocolate4.Dialogue.Runtime.Asset;
 using Chocolate4.Dialogue.Edit.CodeGeneration;
 using System.Linq;
 using Chocolate4.Dialogue.Runtime.Utilities;
@@ -14,6 +12,8 @@ using Chocolate4.Dialogue.Edit.Utilities;
 using Chocolate4.Dialogue.Edit.Entities.Utilities;
 using System.Collections.Generic;
 using Chocolate4.Dialogue.Runtime.Entities;
+using Chocolate4.Dialogue.Runtime.Asset;
+using Newtonsoft.Json;
 
 namespace Chocolate4.Dialogue.Edit.Asset
 {
@@ -23,38 +23,36 @@ namespace Chocolate4.Dialogue.Edit.Asset
         [SerializeField] 
         private int instanceId;
 
-        private DataRebuilder dataRebuilder;
-
         [field:SerializeField]
         internal EntitiesHolder EntitiesDatabase { get; private set; }
         [field:SerializeField] 
-        public DialogueEditorAsset ImportedAsset { get; private set; }
+        public DialogueAsset ImportedAsset { get; private set; }
+
+        private DialogueDataOwner dataOwner;
 
         private string Path => AssetDatabase.GetAssetPath(instanceId);
 
         public DialogueAssetManager(
-            DialogueEditorAsset importedAsset, int instanceId, 
-            EntitiesHolder entitiesDatabase
+            DialogueAsset importedAsset, int instanceId, EntitiesHolder entitiesDatabase
         )
         {
-            dataRebuilder = new DataRebuilder();
-
             this.instanceId = instanceId;
             EntitiesDatabase = entitiesDatabase;
             ImportedAsset = importedAsset;
 
-            EntitiesData entitiesData = new EntitiesData() 
-            {
+            EntitiesData entitiesData = new EntitiesData() {
                 cachedEntities = (List<DialogueEntity>)entitiesDatabase.DialogueEntities 
             };
 
-            Store(importedAsset.graphSaveData, importedAsset.treeSaveData, entitiesData);
+            Store(importedAsset.graphSaveData, importedAsset.TreeData, entitiesData);
         }
 
         internal void Rebuild(DialogueTreeView treeView, DialogueGraphView graphView, DialogueEntitiesView entitiesView)
         {
             EntitiesDatabase.Reload();
-            dataRebuilder.Rebuild(treeView, graphView, entitiesView);
+            treeView.Rebuild(dataOwner.TreeData);
+            graphView.Rebuild(dataOwner.SituationsData);
+            entitiesView.Rebuild(dataOwner.EntitiesData);
         }
 
         internal void Store(GraphSaveData graphData, TreeSaveData treeData, EntitiesData entitiesData)
@@ -68,19 +66,14 @@ namespace Chocolate4.Dialogue.Edit.Asset
 
             Store(graphData, treeData, entitiesData);
 
-            string oldFileName = ImportedAsset.fileName;
-
-            ImportedAsset.fileName = System.IO.Path.GetFileNameWithoutExtension(Path);
-            ImportedAsset.graphSaveData = dataRebuilder.dataContainer.GraphData;
-            ImportedAsset.treeSaveData = dataRebuilder.dataContainer.TreeData;
+            string oldFileName = ImportedAsset.FileName;
 
             SaveEntities(entitiesData);
-
             TrySaveAssetToFile();
 
             DialogueMasterCollectionGenerator.TryRegenerate(
-                ImportedAsset.fileName, oldFileName, ImportedAsset.graphSaveData.blackboardSaveData,
-                ImportedAsset.treeSaveData.treeItemData
+                ImportedAsset.FileName, oldFileName, ImportedAsset.BlackboardData,
+                ImportedAsset.TreeData.treeItemData
             );
         }
 
@@ -120,13 +113,34 @@ namespace Chocolate4.Dialogue.Edit.Asset
 
         private void TrySaveAssetToFile()
         {
-            string assetJson = ImportedAsset.ToJson();
-            if (FilePathConstants.FileIsDuplicate(Path, assetJson))
+            ImportedAsset.FileName = System.IO.Path.GetFileNameWithoutExtension(Path);
+            ImportedAsset.BlackboardData = dataOwner.BlackboardData;
+            ImportedAsset.TreeData = dataOwner.TreeData;
+
+            string assetJson = JsonConvert.SerializeObject(ImportedAsset);
+            if (!FilePathConstants.FileIsDuplicate(Path, assetJson))
             {
-                return;
+                File.WriteAllText(Path, assetJson);
             }
 
-            File.WriteAllText(Path, assetJson);
+            string situationsFolder = FilePathConstants.GetSituationsPathRelative(Path);
+            if (!Directory.Exists(situationsFolder))
+            {
+                Directory.CreateDirectory(situationsFolder);
+            }
+
+            foreach (var situation in dataOwner.SituationsData)
+            {
+                string situationJson = JsonConvert.SerializeObject(situation);
+                string situationPath = FilePathConstants.GetSeparatedPath(false, situationsFolder, situation.DisplayName + FilePathConstants.Json);
+
+                if (FilePathConstants.FileIsDuplicate(situationPath, situationJson))
+                    continue;
+
+                File.WriteAllText(situationPath, assetJson);
+            }
+
+
             AssetDatabase.ImportAsset(Path);
         }
     }

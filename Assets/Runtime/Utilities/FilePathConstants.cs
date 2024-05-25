@@ -1,6 +1,10 @@
 using System.IO;
 using UnityEngine;
 using System.Linq;
+using System;
+using System.Text;
+
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -15,7 +19,9 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
         public const string Resources = "Resources";
         public const string Collection = "Collection";
         public const string Extension = "chocolatedialogue";
+        public const string Json = ".json";
         public const string EntitiesFolder = "Entities";
+        public const string SituationsFolder = "Situations";
 
         public static string testCasesAsset = $"TestCasesDialogueEditor";
 #if UNITY_EDITOR
@@ -49,6 +55,16 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
         public static string GetCollectionName(string fileName) => fileName + Collection;
 
 #if UNITY_EDITOR
+        public static string GetSeparatedPath(bool appendLastSep, params string[] folders)
+        {
+            string path = string.Join(DirSep, folders);
+            if (appendLastSep)
+            {
+                path += DirSep;
+            }
+            return path;
+        }
+
         public static string FindPackageFolder()
         {
             string directory;
@@ -119,6 +135,9 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
 
             return true;
         }
+
+        public static string GetSituationsPathRelative(string assetPath) => 
+            Path.GetDirectoryName(assetPath) + DirSep + SituationsFolder + DirSep;
 #endif
     }
 }
