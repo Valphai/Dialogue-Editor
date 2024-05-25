@@ -5,11 +5,8 @@ using System.Collections.Generic;
 namespace Chocolate4.Dialogue.Runtime.Saving
 {
     [Serializable]
-    public class ChoiceNodeSaveData : IDataHolder
+    public class ChoiceNodeSaveData : NodeModel
     {
         public List<DialogueChoice> choices;
-        public NodeSaveData nodeSaveData;
-
-        public NodeSaveData NodeData => nodeSaveData;
     }
 }

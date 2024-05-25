@@ -15,13 +15,13 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 
         public string NextSituationId { get; private set; } = string.Empty;
 
-        public override IDataHolder Save()
+        public override NodeModel Save()
         {
-            NodeSaveData saveData = (NodeSaveData)base.Save();
+            NodeModel saveData = (NodeModel)base.Save();
             return new SituationTransferNodeSaveData() { otherSituationId = NextSituationId, nodeSaveData = saveData };
         }
 
-        public override void Load(IDataHolder saveData)
+        public override void Load(NodeModel saveData)
         {
             base.Load(saveData);
             SituationTransferNodeSaveData situationSaveData = (SituationTransferNodeSaveData)saveData;

@@ -13,9 +13,9 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
         public bool IsBoundToProperty => !string.IsNullOrEmpty(PropertyId);
         public abstract PropertyType PropertyType { get; protected set; }
 
-        public override IDataHolder Save()
+        public override NodeModel Save()
         {
-            NodeSaveData saveData = (NodeSaveData)base.Save();
+            NodeModel saveData = (NodeModel)base.Save();
             return new PropertyNodeSaveData()
             {
                 nodeSaveData = saveData,
@@ -24,7 +24,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
             };
         }
 
-        public override void Load(IDataHolder saveData)
+        public override void Load(NodeModel saveData)
         {
             base.Load(saveData);
             PropertyNodeSaveData propertySaveData = (PropertyNodeSaveData)saveData;

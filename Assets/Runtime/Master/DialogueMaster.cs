@@ -20,10 +20,10 @@ namespace Chocolate4.Dialogue.Runtime
         [SerializeField]
         private bool autoInitialize;
 
-        private IDataHolder currentNode;
+        private NodeModel currentNode;
         private SituationSaveData currentSituation;
         private string previousSituationId;
-        private List<IDataHolder> allNodes;
+        private List<NodeModel> allNodes;
         private int selectedChoice;
         private ParseAdapter parseAdapter;
         private IDialogueMasterCollection collection;
@@ -78,7 +78,7 @@ namespace Chocolate4.Dialogue.Runtime
                 currentSituation.nodeData.Find(node => node.nodeType.Contains(NodeConstants.StartNode));
 
             allNodes =
-                TypeExtensions.MergeFieldListsIntoOneImplementingType<IDataHolder, SituationSaveData>(currentSituation);
+                TypeExtensions.MergeFieldListsIntoOneImplementingType<NodeModel, SituationSaveData>(currentSituation);
         }
 
         /// <summary>
@@ -193,9 +193,9 @@ namespace Chocolate4.Dialogue.Runtime
             return (IDialogueMasterCollection)Activator.CreateInstance(assetMatchedCollectionType);
         }
 
-        private bool TryGetNextNode(ref IDataHolder current)
+        private bool TryGetNextNode(ref NodeModel current)
         {
-            IDataHolder previousNode = current;
+            NodeModel previousNode = current;
             current = NextNode();
             if (current == null)
             {
@@ -207,14 +207,14 @@ namespace Chocolate4.Dialogue.Runtime
             return true;
         }
 
-        private IDataHolder NextNode()
+        private NodeModel NextNode()
         {
             if (currentNode == null)
             {
                 return null;
             }
 
-            List<PortData> outputPortDataCollection = currentNode.NodeData.outputPortDataCollection;
+            List<PortData> outputPortDataCollection = currentNode.outputPortDataCollection;
 
             string nodeType = currentNode.GetNodeType();
 
@@ -250,7 +250,7 @@ namespace Chocolate4.Dialogue.Runtime
             return null;
         }
 
-        private IDataHolder HandleEventPropertyNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleEventPropertyNode(List<PortData> outputPortDataCollection)
         {
             string eventName = FindPropertyNameById(((PropertyNodeSaveData)currentNode).propertyID);
             collection.CollectionType.GetMethod(
@@ -260,7 +260,7 @@ namespace Chocolate4.Dialogue.Runtime
             return FindNode(outputPortDataCollection.First().otherNodeID);
         }
 
-        private IDataHolder HandleToSituationNode()
+        private NodeModel HandleToSituationNode()
         {
             string currentSituationId = currentSituation.Id;
             string nextSituation = FindSituationName(((SituationTransferNodeSaveData)currentNode).otherSituationId);
@@ -268,24 +268,24 @@ namespace Chocolate4.Dialogue.Runtime
             return GetStartOrFromNodeFrom(currentSituationId);
         }
 
-        private IDataHolder GetStartOrFromNodeFrom(string situationId)
+        private NodeModel GetStartOrFromNodeFrom(string situationId)
         {
-            IDataHolder fromNode = FindNode<SituationTransferNodeSaveData>(
+            NodeModel fromNode = FindNode<SituationTransferNodeSaveData>(
                 node => node.otherSituationId.Equals(situationId)
                 && node.IsNodeOfType(NodeConstants.FromSituationNode)
             );
 
-            return fromNode ?? FindNode<NodeSaveData>(node => node.IsNodeOfType(NodeConstants.StartNode));
+            return fromNode ?? FindNode<NodeModel>(node => node.IsNodeOfType(NodeConstants.StartNode));
         }
 
-        private IDataHolder HandleExpressionNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleExpressionNode(List<PortData> outputPortDataCollection)
         {
             parseAdapter.EvaluateSetExpressions(((TextNodeSaveData)currentNode).text);
 
             return FindNode(outputPortDataCollection.First().otherNodeID);
         }
 
-        private IDataHolder HandleConditionNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleConditionNode(List<PortData> outputPortDataCollection)
         {
             if (parseAdapter.EvaluateConditions(((TextNodeSaveData)currentNode).text))
             {
@@ -295,7 +295,7 @@ namespace Chocolate4.Dialogue.Runtime
             return FindNode(outputPortDataCollection.Last().otherNodeID);
         }
 
-        private IDataHolder HandleChoiceNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleChoiceNode(List<PortData> outputPortDataCollection)
         {
             int count = outputPortDataCollection.Count;
             if (count == 1)
@@ -314,7 +314,7 @@ namespace Chocolate4.Dialogue.Runtime
             }
         }
 
-        private IDataHolder FindNode<T>(Predicate<T> match) where T : IDataHolder
+        private NodeModel FindNode<T>(Predicate<T> match) where T : NodeModel
         {
             if (currentSituation == null)
             {
@@ -324,14 +324,14 @@ namespace Chocolate4.Dialogue.Runtime
             return TypeExtensions.GetListOfTypeFrom<T, SituationSaveData>(currentSituation).Find(match);
         }
 
-        private IDataHolder FindNode(string id)
+        private NodeModel FindNode(string id)
         {
             if (currentSituation == null)
             {
                 return null;
             }
 
-            return allNodes.Find(node => node.NodeData.nodeId == id);
+            return allNodes.Find(node => node.nodeId == id);
         }
 
         private string FindPropertyNameById(string id)

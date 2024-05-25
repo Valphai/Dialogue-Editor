@@ -3,11 +3,8 @@
 namespace Chocolate4.Dialogue.Runtime.Saving
 {
     [Serializable]
-    public class TextNodeSaveData : IDataHolder
+    public class TextNodeSaveData : NodeModel
     {
         public string text;
-        public NodeSaveData nodeSaveData;
-
-        public NodeSaveData NodeData => nodeSaveData;
     }
 }

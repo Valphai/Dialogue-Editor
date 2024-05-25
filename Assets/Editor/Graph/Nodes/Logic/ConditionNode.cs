@@ -15,13 +15,13 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
         public override string Name { get; set; } = "Condition Node";
         public string Text { get; set; }
 
-        public override IDataHolder Save()
+        public override NodeModel Save()
         {
-            NodeSaveData saveData = (NodeSaveData)base.Save();
+            NodeModel saveData = (NodeModel)base.Save();
             return new TextNodeSaveData() { text = Text, nodeSaveData = saveData };
         }
 
-        public override void Load(IDataHolder saveData)
+        public override void Load(NodeModel saveData)
         {
             base.Load(saveData);
             TextNodeSaveData textSaveData = (TextNodeSaveData)saveData;

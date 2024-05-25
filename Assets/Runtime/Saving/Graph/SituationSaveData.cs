@@ -9,7 +9,7 @@ namespace Chocolate4.Dialogue.Runtime.Saving
     public class SituationSaveData : IHaveId
     {
         public string situationId;
-        public List<NodeSaveData> nodeData;
+        public List<NodeModel> nodeData;
         public List<TextNodeSaveData> textNodeData;
         public List<DialogueNodeSaveData> dialogueNodeData;
         public List<PropertyNodeSaveData> propertyNodeSaveData;
@@ -20,10 +20,10 @@ namespace Chocolate4.Dialogue.Runtime.Saving
         public string Id => situationId;
 
         public SituationSaveData(
-            string situationId, List<IDataHolder> dataHolders, List<GroupSaveData> groupSaveData
+            string situationId, List<NodeModel> dataHolders, List<GroupSaveData> groupSaveData
         )
         {
-            nodeData = new List<NodeSaveData>();
+            nodeData = new List<NodeModel>();
             textNodeData = new List<TextNodeSaveData>();
             dialogueNodeData = new List<DialogueNodeSaveData>();
             propertyNodeSaveData = new List<PropertyNodeSaveData>();
@@ -41,10 +41,10 @@ namespace Chocolate4.Dialogue.Runtime.Saving
             TypeExtensions.DistributeListElementsToFieldsOfImplementingTypes(dataHolders, this);
         }
 
-        public bool TryMergeDataIntoHolder(out List<IDataHolder> dataHolders)
+        public bool TryMergeDataIntoHolder(out List<NodeModel> dataHolders)
         {
             dataHolders = 
-                TypeExtensions.MergeFieldListsIntoOneImplementingType<IDataHolder, SituationSaveData>(this);
+                TypeExtensions.MergeFieldListsIntoOneImplementingType<NodeModel, SituationSaveData>(this);
 
             return !dataHolders.IsNullOrEmpty();
         }

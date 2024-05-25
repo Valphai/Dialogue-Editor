@@ -15,7 +15,7 @@ namespace Chocolate4.Dialogue.Edit.Saving
             string situationGuid, DialogueGraphView graphView
         )
         {
-            List<IDataHolder> nodeSaveDatas = new List<IDataHolder>();
+            List<NodeModel> nodeSaveDatas = new List<NodeModel>();
             List<GroupSaveData> groupSaveDatas = new List<GroupSaveData>();
 
             graphView.PerformOnAllGraphElementsOfType<BaseNode>(node => nodeSaveDatas.Add(node.Save()));

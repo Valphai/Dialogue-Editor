@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Chocolate4.Dialogue.Runtime.Saving
 {
     [Serializable]
-    public class NodeSaveData : IDataHolder
+    public class NodeModel
     {
         public string nodeId;
         public string nodeType;
@@ -13,7 +13,5 @@ namespace Chocolate4.Dialogue.Runtime.Saving
         public string groupId;
         public List<PortData> inputPortDataCollection;
         public List<PortData> outputPortDataCollection;
-
-        public NodeSaveData NodeData => this;
     }
 }

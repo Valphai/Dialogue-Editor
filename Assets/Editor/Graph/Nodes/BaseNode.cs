@@ -13,7 +13,7 @@ using Chocolate4.Dialogue.Graph.Edit;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 {
-    public abstract class BaseNode : Node, ISaveable<IDataHolder>, IHaveId, IDangerCauser
+    public abstract class BaseNode : Node, ISaveable<NodeModel>, IHaveId, IDangerCauser
     {
         public string GroupId { get; set; }
         public string Id { get; set; }
@@ -26,12 +26,12 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
             return Name;
         }
 
-        public virtual IDataHolder Save()
+        public virtual NodeModel Save()
         {
             List<PortData> inputPortData = inputContainer.Query<DataPort>().ToList().Select(port => port.Save()).ToList();
             List<PortData> outputPortData = outputContainer.Query<DataPort>().ToList().Select(port => port.Save()).ToList();
 
-            return new NodeSaveData()
+            return new NodeModel()
             {
                 inputPortDataCollection = inputPortData,
                 outputPortDataCollection = outputPortData,
@@ -42,13 +42,13 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
             };
         }
 
-        public virtual void Load(IDataHolder saveData)
+        public virtual void Load(NodeModel saveData)
         {
-            Id = saveData.NodeData.nodeId;
-            GroupId = saveData.NodeData.groupId;
+            Id = saveData.nodeId;
+            GroupId = saveData.groupId;
 
-            List<PortData> inputPortData = saveData.NodeData.inputPortDataCollection.ToList();
-            List<PortData> outputPortData = saveData.NodeData.outputPortDataCollection.ToList();
+            List<PortData> inputPortData = saveData.inputPortDataCollection.ToList();
+            List<PortData> outputPortData = saveData.outputPortDataCollection.ToList();
             LoadPortTypes(inputPortData, inputContainer);
             LoadPortTypes(outputPortData, outputContainer);
         }

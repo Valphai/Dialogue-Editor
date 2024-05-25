@@ -7,9 +7,9 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
 {
     public static class NodeUtilities
     {
-        public static string GetNodeType(this IDataHolder dataHolder)
+        public static string GetNodeType(this NodeModel nodeModel)
         {
-            return dataHolder.NodeData.nodeType.Split('.').Last();
+            return nodeModel.nodeType.Split('.').Last();
         }
         
         public static bool IsNodeOfType(string nodeType, string type)
@@ -17,9 +17,9 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
             return nodeType.Equals(type);
         }
 
-        public static bool IsNodeOfType(this IDataHolder dataHolder, string type)
+        public static bool IsNodeOfType(this NodeModel nodeModel, string type)
         {
-            string nodeType = dataHolder.GetNodeType();
+            string nodeType = nodeModel.GetNodeType();
             return IsNodeOfType(nodeType, type);
         }
         
@@ -28,17 +28,17 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
             return types.Any(type => IsNodeOfType(nodeType, type));
         }
 
-        public static bool IsNodeOfType(this IDataHolder dataHolder, params string[] types)
+        public static bool IsNodeOfType(this NodeModel nodeModel, params string[] types)
         {
-            string nodeType = dataHolder.GetNodeType();
+            string nodeType = nodeModel.GetNodeType();
             return IsNodeOfType(nodeType, types);
         }
 
-        public static List<IDataHolder> GetParents(this IDataHolder dataHolder, Func<string, IDataHolder> findNode)
+        public static List<NodeModel> GetParents(this NodeModel nodeModel, Func<string, NodeModel> findNode)
         {
-            List<IDataHolder> parents = new List<IDataHolder>();
+            List<NodeModel> parents = new List<NodeModel>();
 
-            foreach (PortData portData in dataHolder.NodeData.inputPortDataCollection)
+            foreach (PortData portData in nodeModel.inputPortDataCollection)
             {
                 string otherNodeID = portData.otherNodeID;
                 if (string.IsNullOrEmpty(otherNodeID))

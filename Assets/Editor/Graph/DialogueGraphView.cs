@@ -339,7 +339,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
         private void RebuildGraph(SituationSaveData situationData)
         {
-            if (!situationData.TryMergeDataIntoHolder(out List<IDataHolder> dataHolders))
+            if (!situationData.TryMergeDataIntoHolder(out List<NodeModel> dataHolders))
             {
                 AddStartingNodes();
                 return;
@@ -348,14 +348,14 @@ namespace Chocolate4.Dialogue.Edit.Graph
             RebuildNodesAndGroups(dataHolders, situationData.groupData, out List<BaseNode> _, out List<CustomGroup> _);
         }
 
-        private List<BaseNode> CreateNodes(List<IDataHolder> dataHolders)
+        private List<BaseNode> CreateNodes(List<NodeModel> dataHolders)
         {
             List<BaseNode> nodes = new List<BaseNode>();
             List<Type> nodeTypes = TypeExtensions.GetTypes<BaseNode>(FilePathConstants.Chocolate4).ToList();
-            foreach (IDataHolder dataHolder in dataHolders)
+            foreach (NodeModel dataHolder in dataHolders)
             {
-                Type matchedType = nodeTypes.First(type => type.ToString().Contains(dataHolder.NodeData.nodeType));
-                BaseNode node = CreateNode(dataHolder.NodeData.position, matchedType);
+                Type matchedType = nodeTypes.First(type => type.ToString().Contains(dataHolder.nodeType));
+                BaseNode node = CreateNode(dataHolder.position, matchedType);
                 node.Load(dataHolder);
                 nodes.Add(node);
             }
@@ -567,8 +567,8 @@ namespace Chocolate4.Dialogue.Edit.Graph
             ClearSelection();
 
             SituationSaveData saveData = JsonUtility.FromJson<SituationSaveData>(data);
-            List<IDataHolder> cache =
-                TypeExtensions.MergeFieldListsIntoOneImplementingType<IDataHolder, SituationSaveData>(saveData);
+            List<NodeModel> cache =
+                TypeExtensions.MergeFieldListsIntoOneImplementingType<NodeModel, SituationSaveData>(saveData);
 
             Vector2 center = GetLocalMousePosition(DialogueEditorWindow.Window.rootVisualElement.contentRect.center);
 
@@ -584,7 +584,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
         }
 
         private void RebuildNodesAndGroups(
-            List<IDataHolder> dataHolders, List<GroupSaveData> groupData,
+            List<NodeModel> dataHolders, List<GroupSaveData> groupData,
             out List<BaseNode> nodes, out List<CustomGroup> groups
         )
         {
@@ -598,10 +598,10 @@ namespace Chocolate4.Dialogue.Edit.Graph
         private string CutCopyOperation(IEnumerable<GraphElement> elements)
         {
             elements = elements.ToList();
-            List<IDataHolder> nodeCopyCache = new List<IDataHolder>();
+            List<NodeModel> nodeCopyCache = new List<NodeModel>();
             List<GroupSaveData> groupCopyCache = new List<GroupSaveData>();
 
-            Dictionary<string, List<IDataHolder>> oldGroupIds = new Dictionary<string, List<IDataHolder>>();
+            Dictionary<string, List<NodeModel>> oldGroupIds = new Dictionary<string, List<NodeModel>>();
 
             foreach (GraphElement element in elements)
             {
@@ -612,7 +612,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
                 if (element is BaseNode baseNode)
                 {
-                    IDataHolder dataHolder = baseNode.Save();
+                    NodeModel dataHolder = baseNode.Save();
                     nodeCopyCache.Add(dataHolder);
                     continue;
                 }
@@ -626,7 +626,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
             }
 
             Vector2 center = GetLocalMousePosition(DialogueEditorWindow.Window.rootVisualElement.contentRect.center);
-            nodeCopyCache.ForEach(data => data.NodeData.position -= center);
+            nodeCopyCache.ForEach(data => data.position -= center);
 
             SituationSaveData situationCache = new SituationSaveData("cache", nodeCopyCache, groupCopyCache);
             return JsonUtility.ToJson(situationCache);

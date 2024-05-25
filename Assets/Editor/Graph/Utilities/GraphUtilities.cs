@@ -24,28 +24,28 @@ namespace Chocolate4.Dialogue.Edit.Graph.Utilities
             });
         }
 
-        public static void GeneratePastedIds(List<GroupSaveData> groupSaveData, List<IDataHolder> cache)
+        public static void GeneratePastedIds(List<GroupSaveData> groupSaveData, List<NodeModel> cache)
         {
-            foreach (IDataHolder dataHolder in cache)
+            foreach (NodeModel dataHolder in cache)
             {
                 string newId = Guid.NewGuid().ToString();
-                string oldId = dataHolder.NodeData.nodeId;
+                string oldId = dataHolder.nodeId;
 
-                dataHolder.NodeData.nodeId = newId;
+                dataHolder.nodeId = newId;
 
-                List<IDataHolder> otherDataHolders = cache.Where(data => data != dataHolder).ToList();
-                foreach (IDataHolder otherHolder in otherDataHolders)
+                List<NodeModel> otherDataHolders = cache.Where(data => data != dataHolder).ToList();
+                foreach (NodeModel otherHolder in otherDataHolders)
                 {
-                    ReplaceOldIds(newId, oldId, otherHolder.NodeData.inputPortDataCollection);
-                    ReplaceOldIds(newId, oldId, otherHolder.NodeData.outputPortDataCollection);
+                    ReplaceOldIds(newId, oldId, otherHolder.inputPortDataCollection);
+                    ReplaceOldIds(newId, oldId, otherHolder.outputPortDataCollection);
                 }
 
                 foreach (GroupSaveData groupData in groupSaveData)
                 {
-                    if (dataHolder.NodeData.groupId.Equals(groupData.id))
+                    if (dataHolder.groupId.Equals(groupData.id))
                     {
                         string newGroupId = Guid.NewGuid().ToString();
-                        dataHolder.NodeData.groupId = groupData.id = newGroupId;
+                        dataHolder.groupId = groupData.id = newGroupId;
                     }
                 }
             }
