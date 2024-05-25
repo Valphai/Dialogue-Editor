@@ -162,6 +162,19 @@ namespace Chocolate4.Dialogue.Runtime
 
         public void Initialize()
         {
+            if (dialogueAsset == null)
+            {
+                Debug.LogError("dialogueAsset is missing in the DialogueMaster! Assign it in the inspector.", this);
+                return;
+            }
+
+            if (EntitiesDatabase == null)
+            {
+                Debug.LogError("entitiesDatabase is missing in the DialogueMaster! Assign it in the inspector.", this);
+                return;
+            }
+
+            EntitiesDatabase.Reload();
             collection = CreateCollection();
             parseAdapter = new ParseAdapter(collection);
 
