@@ -29,23 +29,23 @@ namespace Chocolate4.Dialogue.Edit.Graph.Utilities
             foreach (NodeModel dataHolder in cache)
             {
                 string newId = Guid.NewGuid().ToString();
-                string oldId = dataHolder.nodeId;
+                string oldId = dataHolder.NodeId;
 
-                dataHolder.nodeId = newId;
+                dataHolder.NodeId = newId;
 
                 List<NodeModel> otherDataHolders = cache.Where(data => data != dataHolder).ToList();
                 foreach (NodeModel otherHolder in otherDataHolders)
                 {
-                    ReplaceOldIds(newId, oldId, otherHolder.inputPortDataCollection);
-                    ReplaceOldIds(newId, oldId, otherHolder.outputPortDataCollection);
+                    ReplaceOldIds(newId, oldId, otherHolder.InputPortDataCollection);
+                    ReplaceOldIds(newId, oldId, otherHolder.OutputPortDataCollection);
                 }
 
                 foreach (GroupSaveData groupData in groupSaveData)
                 {
-                    if (dataHolder.groupId.Equals(groupData.id))
+                    if (dataHolder.GroupId.Equals(groupData.id))
                     {
                         string newGroupId = Guid.NewGuid().ToString();
-                        dataHolder.groupId = groupData.id = newGroupId;
+                        dataHolder.GroupId = groupData.id = newGroupId;
                     }
                 }
             }

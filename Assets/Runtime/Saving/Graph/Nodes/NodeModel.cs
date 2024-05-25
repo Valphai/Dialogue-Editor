@@ -7,11 +7,11 @@ namespace Chocolate4.Dialogue.Runtime.Saving
     [Serializable]
     public class NodeModel
     {
-        public string nodeId;
-        public string nodeType;
-        public Vector2 position;
-        public string groupId;
-        public List<PortData> inputPortDataCollection;
-        public List<PortData> outputPortDataCollection;
+        public string NodeId { get; set; }
+        public string NodeType { get; set; }
+        public Vector2 Position { get; set; }
+        public string GroupId { get; set; }
+        public List<PortData> InputPortDataCollection { get; set; }
+        public List<PortData> OutputPortDataCollection { get; set; }
     }
 }

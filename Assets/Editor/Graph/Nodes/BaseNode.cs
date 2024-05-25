@@ -21,10 +21,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
         public abstract string Name { get; set; }
         public bool IsMarkedDangerous { get; set; }
 
-        public override string ToString()
-        {
-            return Name;
-        }
+        public override string ToString() => Name;
 
         public virtual NodeModel Save()
         {
@@ -33,22 +30,22 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 
             return new NodeModel()
             {
-                inputPortDataCollection = inputPortData,
-                outputPortDataCollection = outputPortData,
-                nodeId = Id,
-                nodeType = NodeType.ToString(),
-                position = this.GetPositionRaw(),
-                groupId = GroupId,
+                InputPortDataCollection = inputPortData,
+                OutputPortDataCollection = outputPortData,
+                NodeId = Id,
+                NodeType = NodeType.ToString(),
+                Position = this.GetPositionRaw(),
+                GroupId = GroupId,
             };
         }
 
         public virtual void Load(NodeModel saveData)
         {
-            Id = saveData.nodeId;
-            GroupId = saveData.groupId;
+            Id = saveData.NodeId;
+            GroupId = saveData.GroupId;
 
-            List<PortData> inputPortData = saveData.inputPortDataCollection.ToList();
-            List<PortData> outputPortData = saveData.outputPortDataCollection.ToList();
+            List<PortData> inputPortData = saveData.InputPortDataCollection.ToList();
+            List<PortData> outputPortData = saveData.OutputPortDataCollection.ToList();
             LoadPortTypes(inputPortData, inputContainer);
             LoadPortTypes(outputPortData, outputContainer);
         }

@@ -354,8 +354,8 @@ namespace Chocolate4.Dialogue.Edit.Graph
             List<Type> nodeTypes = TypeExtensions.GetTypes<BaseNode>(FilePathConstants.Chocolate4).ToList();
             foreach (NodeModel dataHolder in dataHolders)
             {
-                Type matchedType = nodeTypes.First(type => type.ToString().Contains(dataHolder.nodeType));
-                BaseNode node = CreateNode(dataHolder.position, matchedType);
+                Type matchedType = nodeTypes.First(type => type.ToString().Contains(dataHolder.NodeType));
+                BaseNode node = CreateNode(dataHolder.Position, matchedType);
                 node.Load(dataHolder);
                 nodes.Add(node);
             }
@@ -626,7 +626,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
             }
 
             Vector2 center = GetLocalMousePosition(DialogueEditorWindow.Window.rootVisualElement.contentRect.center);
-            nodeCopyCache.ForEach(data => data.position -= center);
+            nodeCopyCache.ForEach(data => data.Position -= center);
 
             SituationSaveData situationCache = new SituationSaveData("cache", nodeCopyCache, groupCopyCache);
             return JsonUtility.ToJson(situationCache);

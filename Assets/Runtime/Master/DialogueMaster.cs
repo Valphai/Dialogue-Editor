@@ -75,7 +75,7 @@ namespace Chocolate4.Dialogue.Runtime
             }
 
             currentNode = 
-                currentSituation.nodeData.Find(node => node.nodeType.Contains(NodeConstants.StartNode));
+                currentSituation.nodeData.Find(node => node.NodeType.Contains(NodeConstants.StartNode));
 
             allNodes =
                 TypeExtensions.MergeFieldListsIntoOneImplementingType<NodeModel, SituationSaveData>(currentSituation);
@@ -214,7 +214,7 @@ namespace Chocolate4.Dialogue.Runtime
                 return null;
             }
 
-            List<PortData> outputPortDataCollection = currentNode.outputPortDataCollection;
+            List<PortData> outputPortDataCollection = currentNode.OutputPortDataCollection;
 
             string nodeType = currentNode.GetNodeType();
 
@@ -331,7 +331,7 @@ namespace Chocolate4.Dialogue.Runtime
                 return null;
             }
 
-            return allNodes.Find(node => node.nodeId == id);
+            return allNodes.Find(node => node.NodeId == id);
         }
 
         private string FindPropertyNameById(string id)

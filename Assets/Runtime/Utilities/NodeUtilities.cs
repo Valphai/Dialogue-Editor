@@ -9,7 +9,7 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
     {
         public static string GetNodeType(this NodeModel nodeModel)
         {
-            return nodeModel.nodeType.Split('.').Last();
+            return nodeModel.NodeType.Split('.').Last();
         }
         
         public static bool IsNodeOfType(string nodeType, string type)
@@ -38,7 +38,7 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
         {
             List<NodeModel> parents = new List<NodeModel>();
 
-            foreach (PortData portData in nodeModel.inputPortDataCollection)
+            foreach (PortData portData in nodeModel.InputPortDataCollection)
             {
                 string otherNodeID = portData.otherNodeID;
                 if (string.IsNullOrEmpty(otherNodeID))
