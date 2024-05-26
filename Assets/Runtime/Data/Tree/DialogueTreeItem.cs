@@ -1,17 +1,21 @@
-﻿using System;
+﻿using Chocolate4.Dialogue.Edit.Graph.Utilities;
+using Newtonsoft.Json;
+using System;
 
 namespace Chocolate4.Dialogue.Edit.Tree
 {
     [Serializable]
-    public class DialogueTreeItem
+    public class DialogueTreeItem : IHaveId
     {
-        public string displayName;
-        public string id;
+        [JsonProperty]
+        public string Id { get; set; }
+        [JsonIgnore]
+        public string DisplayName { get; set; }
 
-        public DialogueTreeItem(string name)
+        public DialogueTreeItem(string displayName)
         {
-            id = Guid.NewGuid().ToString();
-            displayName = name;
+            Id = Guid.NewGuid().ToString();
+            DisplayName = displayName;
         }
     }
 }

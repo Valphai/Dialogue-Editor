@@ -1,105 +1,60 @@
-﻿using System.Collections.Generic;
-using System;
-using UnityEngine.UIElements;
-using System.Linq;
-using UnityEditor;
-using Chocolate4.Dialogue.Edit.Saving;
+﻿using Chocolate4.Dialogue.Edit.Saving;
 using Chocolate4.Dialogue.Edit.Tree.Utilities;
 using Chocolate4.Dialogue.Runtime.Saving;
 using Chocolate4.Dialogue.Edit.Utilities;
 using Chocolate4.Dialogue.Edit.Search;
 using Chocolate4.Dialogue.Edit.Graph.Utilities;
-using UnityEngine;
 using Chocolate4.Dialogue.Edit.Graph.Utilities.DangerLogger;
+using Chocolate4.Dialogue.Edit.Asset;
+using System.Collections.Generic;
+using System;
+using UnityEngine.UIElements;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
 
 namespace Chocolate4.Dialogue.Edit.Tree
 {
     [Serializable]
-    public class DialogueTreeView : IRebuildable<TreeSaveData>, ISearchable
+    public class DialogueTreeView : IRebuildable, ISearchable
     {
-        internal List<DialogueTreeItem> dialogueTreeItems;
-
-        private TreeSaveData cachedTreeItems;
+        [SerializeField]
         private int cachedSelectedId;
-        private bool shouldCacheTree;
-        private int selectedIndex = -1;
 
         internal TreeView TreeView { get; private set; }
+        internal DialogueDataOwner DataOwner { get; private set; }
+
+        internal List<DialogueTreeItem> DialogueTreeItems => DataOwner.TreeData.TreeItemData
+            .Select(model => model.RootItem)
+            .ToList();
+
+        private string[] ExistingNames => DialogueTreeItems
+            .Select(item => item.DisplayName)
+            .ToArray();
+
+        private int SelectedIndex
+        {
+            get => DataOwner.TreeData.SelectedIndex;
+            set => DataOwner.TreeData.SelectedIndex = value;
+        }
 
         internal event Action<string> OnSituationSelected;
         internal event Action<DialogueTreeItem> OnTreeItemRemoved;
         internal event Action<DialogueTreeItem> OnTreeItemAdded;
         internal event Action<DialogueTreeItem> OnTreeItemRenamed;
 
-        internal void Initialize(TreeSaveData treeSaveData)
+        public void Rebuild()
         {
-            Rebuild(treeSaveData);
-        }
-
-        public void Rebuild(TreeSaveData treeSaveData)
-        {
-            cachedTreeItems = new TreeSaveData(treeSaveData);
             CreateTreeView();
-
-            RebuildTree(cachedTreeItems);
-            RebuildItemsList();
-        }
-
-        private void RebuildItemsList()
-        {
-            List<DialogueTreeItem> result = new List<DialogueTreeItem>();
-            List<int> itemIds = TreeView.viewController.GetAllItemIds().ToList();
-
-            foreach (int id in itemIds)
-            {
-                result.Add(TreeView.GetItemDataForId<DialogueTreeItem>(id));
-            }
-
-            dialogueTreeItems = result;
-        }
-
-        private void RebuildTree(TreeSaveData treeSaveData)
-        {
-            shouldCacheTree = true;
-            var items = new List<TreeViewItemData<DialogueTreeItem>>();
-
-            TreeItemSaveData[] rootDatas =
-                treeSaveData.treeItemData.Where(itemSaveData => itemSaveData.depth == 0).ToArray();
-
-            int rootElementCount = rootDatas.Length;
-            for (int i = 0; i < rootElementCount; i++)
-            {
-                TreeItemSaveData rootItemSaveData = rootDatas[i];
-                items.Add(
-                    new TreeViewItemData<DialogueTreeItem>(i, rootItemSaveData.rootItem,
-                        TreeUtilities.GetChildren(treeSaveData, rootItemSaveData, rootElementCount + i)
-                    )
-                );
-            }
-
-            TreeView.SetRootItems(items);
-
-            TreeView.SetSelection(treeSaveData.selectedIndex);
-            TreeUtilities.ForceRefresh(TreeView, OnSelectionChanged);
-        }
-
-        public TreeSaveData Save()
-        {
-            return StructureSaver.SaveTree(TreeView);
+            RebuildTree(DataOwner.TreeData);
         }
 
         public void Search(string value)
         {
-            if (shouldCacheTree)
-            {
-                cachedTreeItems = Save();
-                shouldCacheTree = false;
-            }
-
             if (string.IsNullOrEmpty(value))
             {
-                cachedTreeItems.selectedIndex = TreeView.viewController.GetIndexForId(cachedSelectedId);
-                RebuildTree(cachedTreeItems);
+                SelectedIndex = TreeView.viewController.GetIndexForId(cachedSelectedId);
+                RebuildTree(DataOwner.TreeData);
                 return;
             }
 
@@ -121,46 +76,60 @@ namespace Chocolate4.Dialogue.Edit.Tree
                 return;
             }
 
-            dialogueTreeItems.Remove(item);
+            DataOwner.Owner.RegisterCompleteObjectUndo($"Removed tree item {item.DisplayName}");
+            DataOwner.RemoveTreeItem(item);
+
             OnTreeItemRemoved?.Invoke(item);
         }
 
-        internal DialogueTreeItem AddTreeItem(string defaultName, int index = -1, string idOverride = "")
+        internal void AddTreeItem(string defaultName, int index = -1, string idOverride = "")
         {
-            int groupID = TreeView.GetIdForIndex(index);
-
-            string[] existingNames = dialogueTreeItems.Select(item => item.displayName).ToArray();
-            string name = ObjectNames.GetUniqueName(existingNames, defaultName);
+            int groupId = TreeView.GetIdForIndex(index);
+            string name = ObjectNames.GetUniqueName(ExistingNames, defaultName);
+            string parentId = TreeView.GetItemDataForId<DialogueTreeItem>(groupId).Id;
 
             DialogueTreeItem treeItem = new DialogueTreeItem(name);
-            AddItemToGroup(treeItem, groupID);
+            AddItemToGroup(treeItem, groupId);
 
             if (!idOverride.Equals(string.Empty))
             {
-                treeItem.id = idOverride;
+                treeItem.Id = idOverride;
             }
 
-            dialogueTreeItems.Add(treeItem);
+            DataOwner.Owner.RegisterCompleteObjectUndo($"Added tree item {name}");
+            DataOwner.AddTreeItem(treeItem, TreeView.GetDepthOfItemById(groupId), parentId);
+
             OnTreeItemAdded?.Invoke(treeItem);
-            return treeItem;
         }
 
-        internal void GraphView_OnSituationCached(string situationGuid)
+        private void RebuildTree(TreeSaveData treeSaveData)
         {
-            int count = TreeView.GetTreeCount();
-            for (int i = 0; i < count; i++)
-            {
-                DialogueTreeItem item = TreeView.GetItemDataForIndex<DialogueTreeItem>(i);
+            TreeItemModel[] rootModels = treeSaveData.TreeItemData
+                .Where(itemSaveData => itemSaveData.Depth == 0)
+                .ToArray();
 
-                if (item.id.Equals(situationGuid))
+            Dictionary<DialogueTreeItem, List<DialogueTreeItem>> parentToChildren = rootModels
+                .ToDictionary(root => root.RootItem, value => new List<DialogueTreeItem>());
+
+            int maxDepth = treeSaveData.TreeItemData.Max(model => model.Depth);
+            for (int depth = 1; depth <= maxDepth; depth++)
+            {
+                var modelsAtDepth = treeSaveData.TreeItemData.Where(model => model.Depth == depth);
+                foreach (var model in modelsAtDepth)
                 {
-                    return;
+                    var parentItem = 
+                        treeSaveData.TreeItemData.Find(model => model.RootItem.Id.Equals(model.ParentId)).RootItem;
+
+                    if (!parentToChildren.TryAdd(parentItem, new List<DialogueTreeItem>() { model.RootItem }))
+                        parentToChildren[parentItem].Add(model.RootItem);
                 }
             }
 
-            AddTreeItem(
-                TreeViewConstants.DefaultSituationName, idOverride:situationGuid
-            );
+            var items = TreeUtilities.BuildTree(parentToChildren);
+            TreeView.SetRootItems(items);
+
+            TreeView.SetSelection(treeSaveData.SelectedIndex);
+            TreeUtilities.ForceRefresh(TreeView, OnSelectionChanged);
         }
 
         private void AddItemToGroup(DialogueTreeItem treeItem, int groupID)
@@ -178,18 +147,14 @@ namespace Chocolate4.Dialogue.Edit.Tree
             DialogueTreeItem item = TreeView.GetItemDataForIndex<DialogueTreeItem>(index);
 
             Label renamableLabel = element.ElementAt(element.childCount - 1) as Label;
-            renamableLabel.text = item.displayName;
+            renamableLabel.text = item.DisplayName;
 
-
-            element.AddContextualMenu("Add Situation", _ => 
-                AddTreeItem(TreeViewConstants.DefaultSituationName, index)
-            );
+            element.AddContextualMenu("Add Situation", _ => AddTreeItem(TreeViewConstants.DefaultSituationName, index));
 
             element.AddContextualMenu("Rename", _ => {
 
-                string[] existingNames = dialogueTreeItems.Select(item => item.displayName).ToArray();
-                VisualElementBuilder.Rename(renamableLabel, item.displayName, existingNames, finishedText => {
-                    item.displayName = finishedText;
+                VisualElementBuilder.Rename(renamableLabel, item.DisplayName, ExistingNames, finishedText => {
+                    item.DisplayName = finishedText;
                     OnTreeItemRenamed?.Invoke(item);
                 });
             });
@@ -215,14 +180,45 @@ namespace Chocolate4.Dialogue.Edit.Tree
 
         private void CreateTreeView()
         {
-            TreeView = new TreeView() { reorderable = true };
+            TreeView = new TreeView() 
+            {
+                reorderable = true,
+                showAlternatingRowBackgrounds = AlternatingRowBackground.All
+            };
 
             TreeView.viewDataKey = "dialogue-tree";
             TreeView.fixedItemHeight = UIStyles.ListViewItemHeight;
-
             TreeView.makeItem = MakeTreeViewItem;
             TreeView.bindItem = BindTreeViewItem;
+            TreeView.itemIndexChanged += OnItemIndexChanged;
             TreeView.selectedIndicesChanged += OnSelectionChanged;
+        }
+
+        private void OnItemIndexChanged(int movedId, int parentId)
+        {
+            var movedItem = TreeView.GetItemDataForId<DialogueTreeItem>(movedId);
+            if (movedItem == null)
+            {
+                Debug.LogError($"Could not tree item by moved id {movedId}");
+                return;
+            }
+
+            var movedModel = DataOwner.TreeData.TreeItemData.Find(model => model.RootItem.Id.Equals(movedItem.Id));
+            if (movedModel == null)
+            {
+                Debug.LogError($"Could not find model by moved id {movedItem.Id}");
+                return;
+            }
+
+            var newParentItem = TreeView.GetItemDataForId<DialogueTreeItem>(parentId);
+            if (newParentItem == null)
+            {
+                Debug.LogError($"Could not find parent of the moved element, parentId = {parentId}");
+                return;
+            }
+
+            string modelsParentId = newParentItem.Id;
+            movedModel.ParentId = modelsParentId;
         }
 
         private void OnSelectionChanged(IEnumerable<int> selectedIndices)
@@ -233,29 +229,29 @@ namespace Chocolate4.Dialogue.Edit.Tree
             }
 
             int index = selectedIndices.First();
-            if (selectedIndex == index)
+            if (SelectedIndex == index)
             {
                 return;
             }
 
             if (DangerLogger.IsEditorInDanger())
             {
-                TreeView.SetSelection(selectedIndex);
+                TreeView.SetSelection(SelectedIndex);
                 return;
             }
 
-            selectedIndex = index;
+            SelectedIndex = index;
 
             DialogueTreeItem selectedSituation = 
-                TreeView.GetItemDataForIndex<DialogueTreeItem>(selectedIndex);
+                TreeView.GetItemDataForIndex<DialogueTreeItem>(SelectedIndex);
 
             if (selectedSituation == null)
             {
                 return;
             }
 
-            cachedSelectedId = TreeView.GetIdForIndex(selectedIndex);
-            OnSituationSelected?.Invoke(selectedSituation.id);
+            cachedSelectedId = TreeView.GetIdForIndex(SelectedIndex);
+            OnSituationSelected?.Invoke(selectedSituation.Id);
         }
     }
 }

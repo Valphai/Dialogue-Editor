@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Chocolate4.Dialogue.Runtime.Saving
@@ -6,8 +7,10 @@ namespace Chocolate4.Dialogue.Runtime.Saving
     [System.Serializable]
     public class TreeSaveData
     {
-        public int selectedIndex = 0;
-        public List<TreeItemSaveData> treeItemData;
+        [JsonProperty]
+        public int SelectedIndex { get; set; } = 0;
+        [JsonProperty]
+        public List<TreeItemModel> TreeItemData { get; set; }
 
         public TreeSaveData()
         {
@@ -16,8 +19,8 @@ namespace Chocolate4.Dialogue.Runtime.Saving
 
         public TreeSaveData(TreeSaveData treeData)
         {
-            selectedIndex = treeData.selectedIndex;
-            treeItemData = treeData.treeItemData.ToList();
+            SelectedIndex = treeData.SelectedIndex;
+            TreeItemData = treeData.TreeItemData.ToList();
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Chocolate4.Dialogue.Edit.CodeGeneration
 	{
         public static void TryRegenerate(
             string fileName, string oldFileName,
-            BlackboardSaveData blackboardSaveData, List<TreeItemSaveData> treeItemsSaveData
+            BlackboardSaveData blackboardSaveData, List<TreeItemModel> treeItemsSaveData
         )
         {
             string collectionName = FilePathConstants.GetCollectionName(fileName);
@@ -48,9 +48,9 @@ namespace Chocolate4.Dialogue.Edit.CodeGeneration
             writer.WriteLine("public enum SituationName");
             writer.BeginBlockWithIndent();
 
-            foreach (TreeItemSaveData treeItemData in treeItemsSaveData)
+            foreach (TreeItemModel treeItemData in treeItemsSaveData)
             {
-                string displayName = treeItemData.rootItem.displayName;
+                string displayName = treeItemData.RootItem.DisplayName;
                 string sanitizedDisplayName = displayName.ToPascalCase().Sanitize();
 
                 writer.WriteLine($"{sanitizedDisplayName},");
@@ -59,9 +59,9 @@ namespace Chocolate4.Dialogue.Edit.CodeGeneration
             writer.EndBlockWithIndent();
             writer.WriteLine();
 
-            foreach (TreeItemSaveData treeItemData in treeItemsSaveData)
+            foreach (TreeItemModel treeItemData in treeItemsSaveData)
             {
-                string displayName = treeItemData.rootItem.displayName;
+                string displayName = treeItemData.RootItem.DisplayName;
                 string sanitizedDisplayName = displayName.ToPascalCase().Sanitize();
 
                 writer.WriteLine($"public const string {sanitizedDisplayName} = \"{displayName}\";");
@@ -71,9 +71,9 @@ namespace Chocolate4.Dialogue.Edit.CodeGeneration
             writer.WriteLine("private Dictionary<SituationName, string> situations = new Dictionary<SituationName, string>");
             writer.BeginBlockWithIndent();
 
-            foreach (TreeItemSaveData treeItemData in treeItemsSaveData)
+            foreach (TreeItemModel treeItemData in treeItemsSaveData)
             {
-                string displayName = treeItemData.rootItem.displayName;
+                string displayName = treeItemData.RootItem.DisplayName;
                 string sanitizedDisplayName = displayName.ToPascalCase().Sanitize();
 
                 writer.WriteLine($"{{ SituationName.{sanitizedDisplayName}, {sanitizedDisplayName} }},");

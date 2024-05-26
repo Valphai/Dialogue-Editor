@@ -31,42 +31,87 @@ namespace Chocolate4.Dialogue.Edit.Tree.Utilities
             });
         }
 
-        public static List<TreeViewItemData<DialogueTreeItem>> GetChildren(
-            TreeSaveData treeSaveData, TreeItemSaveData treeItemSaveData, int nextId
-        )
+        public static List<TreeViewItemData<DialogueTreeItem>> BuildTree(Dictionary<DialogueTreeItem, List<DialogueTreeItem>> parentToChildren)
         {
-            if (treeItemSaveData.childrenGuids.IsNullOrEmpty())
+            // Create a dictionary to store all nodes
+            var nodeDict = new Dictionary<DialogueTreeItem, TreeViewItemData<DialogueTreeItem>>();
+
+            // Create all nodes recursively
+            foreach (var parent in parentToChildren.Keys)
             {
-                return null;
+                CreateNode(parent, parentToChildren, nodeDict);
             }
 
-            int count = treeItemSaveData.childrenGuids.Count;
-            var children = new List<TreeViewItemData<DialogueTreeItem>>();
-            int childStartingId = nextId + count;
-            for (int i = 0; i < count; i++)
-            {
-                string childGuid = treeItemSaveData.childrenGuids[i];
-                TreeItemSaveData childItemSaveData = treeSaveData.treeItemData.Find(itemData => itemData.rootItem.id == childGuid);
-                DialogueTreeItem childItem = childItemSaveData.rootItem;
+            var allChildren = new HashSet<DialogueTreeItem>(parentToChildren.Values.SelectMany(v => v));
+            var roots = parentToChildren.Keys
+                .Where(element => !allChildren.Contains(element))
+                .ToList();
 
-                children.Add(
-                    new TreeViewItemData<DialogueTreeItem>(
-                        nextId + i, 
-                        childItem, 
-                        GetChildren(treeSaveData, childItemSaveData, childStartingId)
-                    )
-                );
-            }
-
-            return children;
+            return roots
+                .Select(root => nodeDict[root])
+                .ToList();
         }
 
-        public static void FilterTreeViewBy(
-            string value, TreeView treeView, Action<IEnumerable<int>> onSelectionChanged
+        private static TreeViewItemData<DialogueTreeItem> CreateNode(
+            DialogueTreeItem parent, Dictionary<DialogueTreeItem, List<DialogueTreeItem>> parentToChildren,
+            Dictionary<DialogueTreeItem, TreeViewItemData<DialogueTreeItem>> nodeDict
         )
         {
-            string filter = value.ToLower();
+            if (nodeDict.ContainsKey(parent))
+            {
+                return nodeDict[parent];
+            }
 
+            var children = new List<TreeViewItemData<DialogueTreeItem>>();
+            if (parentToChildren.ContainsKey(parent))
+            {
+                var parentChildren = parentToChildren[parent];
+                foreach (var child in parentChildren)
+                {
+                    children.Add(CreateNode(child, parentToChildren, nodeDict));
+                }
+            }
+
+            int id = GUID.Generate().GetHashCode();
+            var node = new TreeViewItemData<DialogueTreeItem>(id, parent, children);
+            nodeDict[parent] = node;
+            return node;
+        }
+
+        //public static List<TreeViewItemData<DialogueTreeItem>> GetChildren(
+        //    TreeSaveData treeSaveData, TreeItemModel treeItemSaveData, int nextId
+        //)
+        //{
+        //    if (treeItemSaveData.childrenGuids.IsNullOrEmpty())
+        //    {
+        //        return null;
+        //    }
+
+        //    int count = treeItemSaveData.childrenGuids.Count;
+        //    var children = new List<TreeViewItemData<DialogueTreeItem>>();
+        //    int childStartingId = nextId + count;
+        //    for (int i = 0; i < count; i++)
+        //    {
+        //        string childGuid = treeItemSaveData.childrenGuids[i];
+        //        TreeItemModel childItemSaveData = treeSaveData.TreeItemData.Find(itemData => itemData.RootItem.Id == childGuid);
+        //        DialogueTreeItem childItem = childItemSaveData.RootItem;
+
+        //        children.Add(
+        //            new TreeViewItemData<DialogueTreeItem>(
+        //                nextId + i, 
+        //                childItem, 
+        //                GetChildren(treeSaveData, childItemSaveData, childStartingId)
+        //            )
+        //        );
+        //    }
+
+        //    return children;
+        //}
+
+        public static void FilterTreeViewBy(
+            string filter, TreeView treeView, Action<IEnumerable<int>> onSelectionChanged
+        )
+        {
             List<DialogueTreeItem> displayedTreeItems = new List<DialogueTreeItem>();
 
             List<int> rootIds = treeView.GetRootIds().ToList();
@@ -85,7 +130,7 @@ namespace Chocolate4.Dialogue.Edit.Tree.Utilities
                 {
                     DialogueTreeItem current = stack.Pop();
 
-                    if (current.displayName.ToLower().Contains(filter))
+                    if (current.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase))
                     {
                         displayedTreeItems.Add(current);
                     }
@@ -110,7 +155,7 @@ namespace Chocolate4.Dialogue.Edit.Tree.Utilities
                 }
             }
 
-            displayedTreeItems.Sort((a, b) => EditorUtility.NaturalCompare(a.displayName, b.displayName));
+            displayedTreeItems.Sort((a, b) => EditorUtility.NaturalCompare(a.DisplayName, b.DisplayName));
 
             treeView.SetRootItems(displayedTreeItems.Select(treeItem => new TreeViewItemData<DialogueTreeItem>(
                     allTreeItemIds[treeItem],

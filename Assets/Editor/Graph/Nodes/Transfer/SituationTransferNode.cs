@@ -27,18 +27,18 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
             SituationTransferNodeSaveData situationSaveData = (SituationTransferNodeSaveData)saveData;
             NextSituationId = situationSaveData.otherSituationId;
 
-            IEnumerable<DialogueTreeItem> situations = DialogueEditorWindow.Window.DialogueTreeView.dialogueTreeItems;
+            IEnumerable<DialogueTreeItem> situations = DialogueEditorWindow.Window.DialogueTreeView.DialogueTreeItems;
             
             DialogueTreeItem selectedSituation;
             try
             {
-                selectedSituation = situations.First(treeItem => treeItem.id.Equals(NextSituationId));
+                selectedSituation = situations.First(treeItem => treeItem.Id.Equals(NextSituationId));
             }
             catch (InvalidOperationException)
             {
                 selectedSituation = situations.First();
-                Debug.Log($"Removed situation with id: {NextSituationId} was navigated to by {this}. Changing the situation to: {selectedSituation.displayName}");
-                NextSituationId = selectedSituation.id;
+                Debug.Log($"Removed situation with id: {NextSituationId} was navigated to by {this}. Changing the situation to: {selectedSituation.DisplayName}");
+                NextSituationId = selectedSituation.Id;
             }
 
             popupField.SetValueWithoutNotify(selectedSituation);
@@ -46,7 +46,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 
         internal void UpdatePopup(DialogueTreeItem treeItem)
         {
-            if (NextSituationId != treeItem.id)
+            if (NextSituationId != treeItem.Id)
             {
                 return;
             }
@@ -70,17 +70,17 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 
         private void CreatePopup(DialogueTreeView dialogueTreeView)
         {
-            Func<DialogueTreeItem, string> formatListItemCallback = (selectedTreeItem) => selectedTreeItem.displayName;
+            Func<DialogueTreeItem, string> formatListItemCallback = (selectedTreeItem) => selectedTreeItem.DisplayName;
             Func<DialogueTreeItem, string> formatSelectedValueCallback = selectedTreeItem => {
                 
-                NextSituationId = selectedTreeItem.id;
+                NextSituationId = selectedTreeItem.Id;
                 SanitizeSelectedSituation();
                 
-                return selectedTreeItem.displayName;
+                return selectedTreeItem.DisplayName;
             };
 
             popupField = new PopupField<DialogueTreeItem>(
-                dialogueTreeView.dialogueTreeItems, 0, 
+                dialogueTreeView.DialogueTreeItems, 0, 
                 formatSelectedValueCallback, formatListItemCallback
             );
         }
