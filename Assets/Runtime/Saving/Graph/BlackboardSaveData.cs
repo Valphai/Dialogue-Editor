@@ -6,6 +6,6 @@ namespace Chocolate4.Dialogue.Runtime.Saving
     [Serializable]
     public class BlackboardSaveData
     {
-        public List<DialoguePropertySaveData> dialoguePropertiesSaveData;
+        public List<DialoguePropertyModel> dialoguePropertiesSaveData;
     }
 }

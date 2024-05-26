@@ -9,8 +9,6 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
         [SerializeField]
         private Toggle toggleField;
 
-        public BoolConstantView(Action<bool> onValueChanged) : base(onValueChanged) { }
-
         public override VisualElement CreateControl()
         {
             toggleField = new Toggle();

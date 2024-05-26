@@ -7,10 +7,9 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
     public class IntegerConstantView : ConstantViewGeneric<int>
     {
         private const string Zero = "0";
+
         [SerializeField]
         private TextField textField;
-
-        public IntegerConstantView(Action<int> onValueChanged) : base(onValueChanged) { }
 
         public override VisualElement CreateControl()
         {

@@ -89,30 +89,30 @@ namespace Chocolate4.Dialogue.Edit.CodeGeneration
 
             writer.WriteLine("#region Variables");
 
-            List<DialoguePropertySaveData> dialoguePropertiesSaveData =
+            List<DialoguePropertyModel> dialoguePropertiesSaveData =
                 blackboardSaveData.dialoguePropertiesSaveData;
 
-            List<DialoguePropertySaveData> valuesData =
-                dialoguePropertiesSaveData.Where(prop => prop.propertyType != PropertyType.Event).ToList();
-            foreach (DialoguePropertySaveData property in valuesData)
+            List<DialoguePropertyModel> valuesData =
+                dialoguePropertiesSaveData.Where(prop => prop.PropertyType != PropertyType.Event).ToList();
+            foreach (DialoguePropertyModel property in valuesData)
             {
-                writer.WriteLine($"public {property.propertyType.GetPropertyString()} {property.displayName} {{ get; set; }} = {property.value.ToLower()};");
+                writer.WriteLine($"public {property.PropertyType.GetPropertyString()} {property.DisplayName} {{ get; set; }} = {property.Value.ToLower()};");
             }
 
             writer.WriteLine("#endregion");
             writer.WriteLine();
             writer.WriteLine("#region Events");
 
-            List<DialoguePropertySaveData> eventsData = dialoguePropertiesSaveData.Except(valuesData).ToList();
-            foreach (DialoguePropertySaveData property in eventsData)
+            List<DialoguePropertyModel> eventsData = dialoguePropertiesSaveData.Except(valuesData).ToList();
+            foreach (DialoguePropertyModel property in eventsData)
             {
-                writer.WriteLine($"public {property.propertyType.GetPropertyString()} {property.displayName};");
+                writer.WriteLine($"public {property.PropertyType.GetPropertyString()} {property.DisplayName};");
             }
 
-            foreach (DialoguePropertySaveData property in eventsData)
+            foreach (DialoguePropertyModel property in eventsData)
             {
                 writer.WriteLine();
-                writer.WriteLine($"private void Invoke{property.displayName}() => {property.displayName}?.Invoke();");
+                writer.WriteLine($"private void Invoke{property.DisplayName}() => {property.DisplayName}?.Invoke();");
             }
 
             writer.WriteLine("#endregion");

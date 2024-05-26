@@ -6,43 +6,25 @@ using System;
 namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 {
     [Serializable]
-    public class EventDialogueProperty : IDialogueProperty, IDraggableProperty
+    internal sealed class EventDialogueProperty : IDialogueProperty, IDraggableProperty
     {
-        private string displayName;
+        private DialoguePropertyModel model;
+
+        public string Id => model.Id;
+        public PropertyType PropertyType { get; } = PropertyType.Event;
+
         public string DisplayName
         {
-            get
-            {
-                if (string.IsNullOrEmpty(displayName))
-                    return Id.ToString();
-                return displayName;
-            }
-            set { displayName = value; }
+            get => string.IsNullOrEmpty(model.DisplayName) ? Id.ToString() : model.DisplayName;
+            set => model.DisplayName = value;
         }
 
-        public string Id { get; private set; } = Guid.NewGuid().ToString();
-        public PropertyType PropertyType { get; protected set; } = PropertyType.Event;
-
-        public EventDialogueProperty()
+        public EventDialogueProperty(DialoguePropertyModel model)
         {
-            DisplayName = PropertyType.ToString();
-        }
+            this.model = model;
 
-        public virtual DialoguePropertySaveData Save()
-        {
-            return new DialoguePropertySaveData()
-            {
-                displayName = DisplayName,
-                id = Id,
-                propertyType = PropertyType,
-            };
-        }
-
-        public virtual void Load(DialoguePropertySaveData saveData)
-        {
-            DisplayName = saveData.displayName;
-            Id = saveData.id;
-            PropertyType = saveData.propertyType;
+            DisplayName = model.DisplayName ?? PropertyType.ToString();
+            model.PropertyType = PropertyType;
         }
 
         public BaseNode ToConcreteNode() => new EventPropertyNode()

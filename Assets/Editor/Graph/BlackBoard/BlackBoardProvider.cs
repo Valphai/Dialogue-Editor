@@ -1,10 +1,9 @@
+using Chocolate4.Dialogue.Edit.Asset;
 using Chocolate4.Dialogue.Edit.Graph.Nodes;
 using Chocolate4.Dialogue.Edit.Graph.Utilities.DangerLogger;
-using Chocolate4.Dialogue.Edit.Saving;
 using Chocolate4.Dialogue.Edit.Utilities;
 using Chocolate4.Dialogue.Runtime.Saving;
 using Chocolate4.Dialogue.Runtime.Utilities;
-using Chocolate4.Dialogue.Edit.Graph;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,18 +14,17 @@ using UnityEngine.UIElements;
 
 namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 {
-    public class BlackboardProvider : IRebuildable<BlackboardSaveData>
+    internal class BlackboardProvider
     {
         private Dictionary<string, BlackboardRow> propertyRows;
         private BlackboardSection section;
+        private List<IDialogueProperty> properties;
 
-        public List<IDialogueProperty> Properties { get; set; }
         public Blackboard Blackboard { get; private set; }
+        internal DialogueDataOwner DataOwner { get; private set; }
 
         public BlackboardProvider(GraphView graphView)
         {
-            propertyRows = new Dictionary<string, BlackboardRow>();
-
             Blackboard = new Blackboard(graphView)
             {
                 scrollable = true,
@@ -34,44 +32,29 @@ namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
                 editTextRequested = EditTextRequested,
                 addItemRequested = AddItemRequested,
             };
-            
-            section = new BlackboardSection { headerVisible = false };
-            Properties = new List<IDialogueProperty>();
-
-            Blackboard.Add(section);
         }
 
-        public BlackboardSaveData Save()
+        public void Rebuild(BlackboardSaveData blackboardData)
         {
-            List<DialoguePropertySaveData> saveData = new List<DialoguePropertySaveData>();
+            Build();
 
-            foreach (IDialogueProperty property in Properties)
-            {
-                saveData.Add(property.Save());
-            }
-
-            return new BlackboardSaveData() { dialoguePropertiesSaveData = saveData } ;
-        }
-
-        public void Rebuild(BlackboardSaveData saveData)
-        {
-            if (saveData.dialoguePropertiesSaveData.IsNullOrEmpty())
+            if (blackboardData.dialoguePropertiesSaveData.IsNullOrEmpty())
             {
                 return;
             }
 
-            foreach (DialoguePropertySaveData propertySaveData in saveData.dialoguePropertiesSaveData)
+            foreach (DialoguePropertyModel propertyModel in blackboardData.dialoguePropertiesSaveData)
             {
-                IDialogueProperty property = propertySaveData.propertyType switch
+                IDialogueProperty property = propertyModel.PropertyType switch
                 {
-                    PropertyType.Bool => new BoolDialogueProperty(),
-                    PropertyType.Integer => new IntegerDialogueProperty(),
-                    PropertyType.Event => new EventDialogueProperty(),
+                    PropertyType.Bool => new BoolDialogueProperty(propertyModel, DataOwner),
+                    PropertyType.Integer => new IntegerDialogueProperty(propertyModel, DataOwner),
+                    PropertyType.Event => new EventDialogueProperty(propertyModel),
                     _ => throw new NotImplementedException()
                 };
 
-                property.Load(propertySaveData);
                 AddProperty(property);
+
                 if (property is IExpandableDialogueProperty expandableProperty)
                 {
                     expandableProperty.UpdateConstantView();
@@ -92,9 +75,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
             }
 
             row.RemoveFromHierarchy();
-            Properties.Remove(deletedProperty);
-
-            
+            properties.Remove(deletedProperty);
 
             Blackboard.graphView.graphElements.ForEach(element => {
 
@@ -126,7 +107,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 
         internal void UpdatePropertyBinds()
         {
-            foreach (IDialogueProperty property in Properties)
+            foreach (IDialogueProperty property in properties)
             {
                 UpdateNodesWith(property);
             }
@@ -194,29 +175,28 @@ namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 
             propertyRows[property.Id] = row;
 
-            Properties.Add(property);
+            properties.Add(property);
             if (create)
             {
                 row.expanded = true;
-                //m_Graph.owner.RegisterCompleteObjectUndo("Create Property");
+                DataOwner.Owner.RegisterCompleteObjectUndo($"Created a property {property.DisplayName}");
 
                 field.OpenTextEditor();
-
             }
         }
 
         private string GetSanitizedPropertyName(string propertyName)
         {
-            string[] existingNames = Properties.Select(property => property.DisplayName).ToArray();
+            string[] existingNames = properties.Select(property => property.DisplayName).ToArray();
             return ObjectNames.GetUniqueName(existingNames, propertyName);
         }
 
         private void AddItemRequested(Blackboard blackboard)
         {
             var gm = new GenericMenu();
-            gm.AddItem(new GUIContent("Integer"), false, () => AddProperty(new IntegerDialogueProperty(), true));
-            gm.AddItem(new GUIContent("Bool"), false, () => AddProperty(new BoolDialogueProperty(), true));
-            gm.AddItem(new GUIContent("Event"), false, () => AddProperty(new EventDialogueProperty(), true));
+            gm.AddItem(new GUIContent("Integer"), false, () => AddProperty(new IntegerDialogueProperty(DataOwner.CreatePropertyModel(), DataOwner), true));
+            gm.AddItem(new GUIContent("Bool"), false, () => AddProperty(new BoolDialogueProperty(DataOwner.CreatePropertyModel(), DataOwner), true));
+            gm.AddItem(new GUIContent("Event"), false, () => AddProperty(new EventDialogueProperty(DataOwner.CreatePropertyModel()), true));
             gm.ShowAsContext();
         }
 
@@ -226,16 +206,17 @@ namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
             IDialogueProperty property = (IDialogueProperty)field.userData;
 
             newText = newText.Sanitize();
-            if (!string.IsNullOrEmpty(newText) && !newText.Equals(property.DisplayName))
+            if (string.IsNullOrEmpty(newText) || newText.Equals(property.DisplayName))
             {
-                //m_Graph.owner.RegisterCompleteObjectUndo("Edit Property Name");
-                newText = GetSanitizedPropertyName(newText);
-
-                property.DisplayName = newText;
-                field.text = newText;
-                UpdateNodesWith(property);
-                //DirtyNodes();
+                return;
             }
+
+            newText = GetSanitizedPropertyName(newText);
+
+            DataOwner.Owner.RegisterCompleteObjectUndo($"Changed property name {property.DisplayName} to {newText}");
+            property.DisplayName = newText;
+            field.text = newText;
+            UpdateNodesWith(property);
         }
 
         private void UpdateNodesWith(IDialogueProperty property)
@@ -290,6 +271,17 @@ namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
             expandedAssignValueField.Add(constantViewControl);
 
             return expandedAssignValueField;
+        }
+
+        private void Build()
+        {
+            properties = new List<IDialogueProperty>();
+            propertyRows = new Dictionary<string, BlackboardRow>();
+            if (Blackboard.Contains(section))
+                Blackboard.Remove(section);
+
+            section = new BlackboardSection { headerVisible = false };
+            Blackboard.Add(section);
         }
     }
 }

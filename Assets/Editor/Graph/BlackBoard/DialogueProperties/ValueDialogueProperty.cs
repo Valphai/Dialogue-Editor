@@ -1,3 +1,4 @@
+using Chocolate4.Dialogue.Edit.Asset;
 using Chocolate4.Dialogue.Edit.Graph.Nodes;
 using Chocolate4.Dialogue.Runtime.Saving;
 using Chocolate4.Dialogue.Runtime.Utilities;
@@ -6,46 +7,43 @@ using System;
 namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 {
     [Serializable]
-    public abstract class ValueDialogueProperty<T> : IDialogueProperty, IExpandableDialogueProperty
+    public abstract class ValueDialogueProperty<TValue, TConstantView> : IDialogueProperty, IExpandableDialogueProperty
+        where TConstantView : ConstantViewGeneric<TValue>, new()
     {
-        public T Value { get; set; }
+        private TConstantView constantView;
+        private DialogueDataOwner dataOwner;
 
-        private string displayName;
+        protected DialoguePropertyModel model;
+
+        public string Id => model.Id;
+        public abstract PropertyType PropertyType { get; }
+
         public string DisplayName
         {
-            get
-            {
-                if (string.IsNullOrEmpty(displayName))
-                    return Id.ToString();
-                return displayName;
-            }
-            set { displayName = value; }
+            get => string.IsNullOrEmpty(model.DisplayName) ? Id.ToString() : model.DisplayName;
+            set => model.DisplayName = value;
         }
 
-        public string Id { get; private set; } = Guid.NewGuid().ToString();
-
-        public abstract PropertyType PropertyType { get; protected set; }
-
-        public abstract IConstantViewControlCreator ToConstantView();
-        public abstract void UpdateConstantView();
-
-        public virtual DialoguePropertySaveData Save()
+        protected ValueDialogueProperty(DialoguePropertyModel model, DialogueDataOwner dataOwner)
         {
-            return new DialoguePropertySaveData()
-            {
-                value = Value.ToString(),
-                displayName = DisplayName,
-                id = Id,
-                propertyType = PropertyType,
-            };
+            this.model = model;
+            this.dataOwner = dataOwner;
+
+            DisplayName = model.DisplayName ?? PropertyType.ToString();
+            model.PropertyType = PropertyType;
         }
 
-        public virtual void Load(DialoguePropertySaveData saveData)
+        public IConstantViewControlCreator ToConstantView()
         {
-            Value = (T)Convert.ChangeType(saveData.value, typeof(T));
-            DisplayName = saveData.displayName;
-            Id = saveData.id;
-            PropertyType = saveData.propertyType;
+            constantView = new TConstantView();
+            constantView.Initialize((value) => {
+                DataOwner.Owner.RegisterCompleteObjectUndo($"Changed value of {model.DisplayName} to {value}");
+                model.Value = value.ToString();
+            });
+            return constantView;
         }
+
+        public void UpdateConstantView() => 
+            constantView.UpdateControl((TValue)Convert.ChangeType(model.Value, typeof(TValue)));
     }
 }

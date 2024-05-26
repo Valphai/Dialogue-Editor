@@ -1,30 +1,18 @@
+using Chocolate4.Dialogue.Edit.Asset;
 using Chocolate4.Dialogue.Edit.Graph.Nodes;
+using Chocolate4.Dialogue.Runtime.Saving;
 using Chocolate4.Dialogue.Runtime.Utilities;
 using System;
 
 namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 {
     [Serializable]
-    public class IntegerDialogueProperty : ValueDialogueProperty<int>
+    public class IntegerDialogueProperty : ValueDialogueProperty<int, IntegerConstantView>
     {
-        private IntegerConstantView integerConstantView;
+        public override PropertyType PropertyType { get; } = PropertyType.Integer;
 
-        public override PropertyType PropertyType { get; protected set; } = PropertyType.Integer;
-
-        public IntegerDialogueProperty()
+        public IntegerDialogueProperty(DialoguePropertyModel model, DialogueDataOwner dataOwner) : base(model, dataOwner)
         {
-            DisplayName = PropertyType.ToString();
-        }
-
-        public override IConstantViewControlCreator ToConstantView()
-        {
-            integerConstantView = new IntegerConstantView((value) => Value = value);
-            return integerConstantView;
-        }
-
-        public override void UpdateConstantView()
-        {
-            integerConstantView.UpdateControl(Value);
         }
     }
 }

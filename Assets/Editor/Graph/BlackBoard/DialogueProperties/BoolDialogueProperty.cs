@@ -1,30 +1,18 @@
+using Chocolate4.Dialogue.Edit.Asset;
 using Chocolate4.Dialogue.Edit.Graph.Nodes;
+using Chocolate4.Dialogue.Runtime.Saving;
 using Chocolate4.Dialogue.Runtime.Utilities;
 using System;
 
 namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 {
     [Serializable]
-    public class BoolDialogueProperty : ValueDialogueProperty<bool>
+    public class BoolDialogueProperty : ValueDialogueProperty<bool, BoolConstantView>
     {
-        private BoolConstantView boolConstantView;
+        public override PropertyType PropertyType { get; } = PropertyType.Bool;
 
-        public override PropertyType PropertyType { get; protected set; } = PropertyType.Bool;
-
-        public BoolDialogueProperty()
+        public BoolDialogueProperty(DialoguePropertyModel model, DialogueDataOwner dataOwner) : base(model, dataOwner)
         {
-            DisplayName = PropertyType.ToString();
-        }
-
-        public override IConstantViewControlCreator ToConstantView()
-        {
-            boolConstantView = new BoolConstantView((value) => Value = value);
-            return boolConstantView;
-        }
-
-        public override void UpdateConstantView()
-        {
-            boolConstantView.UpdateControl(Value);
         }
     }
 }

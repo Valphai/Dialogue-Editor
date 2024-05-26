@@ -4,7 +4,7 @@ using Chocolate4.Dialogue.Edit.Graph.Utilities;
 
 namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 {
-    public interface IDialogueProperty : ISaveable<DialoguePropertySaveData>, IHaveId
+    public interface IDialogueProperty : IHaveId
     {
         string DisplayName { get; set; }
         PropertyType PropertyType { get; }

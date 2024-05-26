@@ -9,7 +9,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
         [SerializeField]
         protected Action<T> onValueChanged;
 
-        public ConstantViewGeneric(Action<T> onValueChanged)
+        public void Initialize(Action<T> onValueChanged)
         {
             this.onValueChanged = onValueChanged;
         }
