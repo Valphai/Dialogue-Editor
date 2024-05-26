@@ -33,12 +33,13 @@ namespace Chocolate4.Dialogue.Edit.Asset
                 return;
             }
 
+            var asset = ScriptableObject.CreateInstance<DialogueAsset>();
             var entitiesDatabase = ScriptableObject.CreateInstance<EntitiesHolder>();
 
             try
             {
-                var asset = JsonConvert.DeserializeObject<DialogueAsset>(json);
-                asset.SituationData = ReadSituationJsons(ctx.assetPath);
+                asset.FromJson(json);
+                asset.DialogueData.SituationData = ReadSituationJsons(ctx.assetPath);
             }
             catch (Exception exception)
             {
@@ -53,7 +54,8 @@ namespace Chocolate4.Dialogue.Edit.Asset
 
             var assetIcon = (Texture2D)EditorGUIUtility.Load(FilePathConstants.GetEditorVisualAssetPath(FilePathConstants.assetIcon));
             
-            ctx.AddObjectToAsset("<root>", entitiesDatabase, assetIcon);
+            ctx.AddObjectToAsset("<root>", asset, assetIcon);
+            ctx.AddObjectToAsset("<entities>", entitiesDatabase);
         }
 
         private List<SituationSaveData> ReadSituationJsons(string assetPath)
