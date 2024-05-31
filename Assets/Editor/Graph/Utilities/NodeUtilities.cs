@@ -9,9 +9,9 @@ using Chocolate4.Dialogue.Graph.Edit;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Utilities
 {
-    public static class NodeUtilities
+    internal static class NodeUtilities
     {
-        public static List<BaseNode> GetConnectedNodesTo(Port port, Direction requestedPort, Action<Port> actionOnOtherPort = null)
+        internal static List<BaseNode> GetConnectedNodesTo(Port port, Direction requestedPort, Action<Port> actionOnOtherPort = null)
         {
             List<Edge> connections = port.connections.ToList();
 
@@ -27,7 +27,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.Utilities
             return connectionsMap;
         }
 
-        public static bool IsConnectedTo(this BaseNode node, BaseNode another)
+        internal static bool IsConnectedTo(this BaseNode node, BaseNode another)
         {
             IEnumerable<Port> inputPorts = node.inputContainer.Children().OfType<Port>();
             IEnumerable<Port> outputPorts = node.outputContainer.Children().OfType<Port>();
@@ -36,11 +36,11 @@ namespace Chocolate4.Dialogue.Edit.Graph.Utilities
             return allPorts.Any(port => port.IsConnectedTo(another));
         }
 
-        internal static List<PortData> GetAllPortData(this BaseNode node, Direction portDirection)
+        internal static List<PortModel> GetAllPortData(this BaseNode node, Direction portDirection)
         {
             return (portDirection == Direction.Input ? node.inputContainer : node.outputContainer)
                 .Query<DataPort>().ToList()
-                .Select(port => port.PortData)
+                .Select(port => port.PortModel)
                 .ToList();
         }
 

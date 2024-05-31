@@ -38,7 +38,7 @@ namespace Chocolate4.Dialogue.Runtime.Utilities
         {
             List<NodeModel> parents = new List<NodeModel>();
 
-            foreach (PortData portData in nodeModel.InputPortDataCollection)
+            foreach (PortModel portData in nodeModel.InputPortModels)
             {
                 string otherNodeID = portData.otherNodeID;
                 if (string.IsNullOrEmpty(otherNodeID))

@@ -24,7 +24,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.Utilities
             });
         }
 
-        public static void GeneratePastedIds(List<GroupSaveData> groupSaveData, List<NodeModel> cache)
+        public static void GeneratePastedIds(List<GroupModel> groupSaveData, List<NodeModel> cache)
         {
             foreach (NodeModel dataHolder in cache)
             {
@@ -36,23 +36,23 @@ namespace Chocolate4.Dialogue.Edit.Graph.Utilities
                 List<NodeModel> otherDataHolders = cache.Where(data => data != dataHolder).ToList();
                 foreach (NodeModel otherHolder in otherDataHolders)
                 {
-                    ReplaceOldIds(newId, oldId, otherHolder.InputPortDataCollection);
-                    ReplaceOldIds(newId, oldId, otherHolder.OutputPortDataCollection);
+                    ReplaceOldIds(newId, oldId, otherHolder.InputPortModels);
+                    ReplaceOldIds(newId, oldId, otherHolder.OutputPortModels);
                 }
 
-                foreach (GroupSaveData groupData in groupSaveData)
+                foreach (GroupModel groupData in groupSaveData)
                 {
-                    if (dataHolder.GroupId.Equals(groupData.id))
+                    if (dataHolder.GroupId.Equals(groupData.Id))
                     {
                         string newGroupId = Guid.NewGuid().ToString();
-                        dataHolder.GroupId = groupData.id = newGroupId;
+                        dataHolder.GroupId = groupData.Id = newGroupId;
                     }
                 }
             }
 
-            void ReplaceOldIds(string newId, string oldId, List<PortData> otherCollection)
+            void ReplaceOldIds(string newId, string oldId, List<PortModel> otherCollection)
             {
-                foreach (PortData portData in otherCollection)
+                foreach (PortModel portData in otherCollection)
                 {
                     if (portData.otherNodeID.Equals(oldId))
                     {

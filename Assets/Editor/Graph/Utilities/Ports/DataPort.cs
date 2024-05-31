@@ -1,15 +1,14 @@
 using Chocolate4.Dialogue.Edit.Graph.Nodes;
 using Chocolate4.Dialogue.Runtime.Saving;
 using System;
-using System.Linq;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine.UIElements;
 
 namespace Chocolate4.Dialogue.Graph.Edit
 {
-    public class DataPort : Port, ISaveable<PortData>
+    public class DataPort : Port
     {
-        internal PortData PortData { get; private set; }
+        internal PortModel PortModel { get; private set; }
 
         public DataPort(
             string portName, Orientation portOrientation, 
@@ -18,7 +17,7 @@ namespace Chocolate4.Dialogue.Graph.Edit
         {
             this.portName = name = portName;
 
-            PortData = new PortData()
+            PortModel = new PortModel()
             {
                 thisPortName = portName,
                 thisPortType = portType.ToString()
@@ -28,7 +27,8 @@ namespace Chocolate4.Dialogue.Graph.Edit
         public static DataPort Create<TEdge>(
             string portName, Orientation orientation, 
             Direction direction, Capacity capacity, Type type
-        ) where TEdge : Edge, new()
+        ) 
+            where TEdge : Edge, new()
         {
             Port port = Create<Edge>(orientation, direction, capacity, type);
 
@@ -42,16 +42,6 @@ namespace Chocolate4.Dialogue.Graph.Edit
             return dataPort;
         }
 
-        public PortData Save()
-        {
-            return new PortData(PortData);
-        }
-
-        public void Load(PortData saveData)
-        {
-            PortData = new PortData(saveData);
-        }
-
         public override void Connect(Edge edge)
         {
             base.Connect(edge);
@@ -60,16 +50,16 @@ namespace Chocolate4.Dialogue.Graph.Edit
             Port otherPort = edge.GetOtherPort(this);
 
             BaseNode otherNode = (BaseNode)otherPort.node;
-            PortData.otherNodeID = otherNode.Id;
-            PortData.otherPortName = otherPort.portName;
+            PortModel.otherNodeID = otherNode.Id;
+            PortModel.otherPortName = otherPort.portName;
         }
 
         public override void Disconnect(Edge edge)
         {
             base.Disconnect(edge);
 
-            PortData.otherNodeID = string.Empty;
-            PortData.otherPortName = string.Empty;
+            PortModel.otherNodeID = string.Empty;
+            PortModel.otherPortName = string.Empty;
         }
     }
 }

@@ -3,19 +3,19 @@ using System;
 namespace Chocolate4.Dialogue.Runtime.Saving
 {
     [Serializable]
-    public class PortData
+    public class PortModel
     {
         public string otherNodeID;
         public string otherPortName;
         public string thisPortName;
         public string thisPortType;
 
-        public PortData()
+        public PortModel()
         {
             
         }
 
-        public PortData(PortData portData)
+        public PortModel(PortModel portData)
         {
             otherNodeID = portData.otherNodeID;
             otherPortName = portData.otherPortName;
