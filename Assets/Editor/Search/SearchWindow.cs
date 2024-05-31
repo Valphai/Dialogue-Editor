@@ -10,7 +10,7 @@ using UnityEngine.UIElements;
 
 namespace Chocolate4.Dialogue.Edit.Search
 {
-    public class SearchWindow : ScriptableObject, ISearchWindowProvider
+    internal class SearchWindow : ScriptableObject, ISearchWindowProvider
     {
         private DialogueGraphView dialogueGraphView;
         private Texture2D indentIcon;
