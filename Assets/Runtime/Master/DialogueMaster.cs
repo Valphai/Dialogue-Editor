@@ -16,7 +16,7 @@ namespace Chocolate4.Dialogue.Runtime
     public class DialogueMaster : MonoBehaviour
     {
         [SerializeField]
-        private DialogueEditorAsset dialogueAsset;
+        private DialogueAsset dialogueAsset;
         [SerializeField]
         private bool autoInitialize;
 
@@ -32,7 +32,7 @@ namespace Chocolate4.Dialogue.Runtime
         public EntitiesHolder EntitiesDatabase { get; private set; }
 
         public bool HasInitialized { get; private set; }
-        public string CurrentSituationName => FindSituationName(currentSituation);
+        public string CurrentSituationName => currentSituation.DisplayName;
 
         private void Awake()
         {
@@ -58,12 +58,12 @@ namespace Chocolate4.Dialogue.Runtime
 
             if (currentSituation != null)
             {
-                previousSituationId = currentSituation.situationId;
+                previousSituationId = currentSituation.Id;
                 Debug.Log($"There was an active situation: {previousSituationId}.\nTrying to start new situation: {situationName}");
             }
             else
             {
-                previousSituationId = newSituation.situationId;
+                previousSituationId = newSituation.Id;
             }
 
             currentSituation = newSituation;
@@ -75,7 +75,7 @@ namespace Chocolate4.Dialogue.Runtime
             }
 
             currentNode = 
-                currentSituation.nodeData.Find(node => node.NodeType.Contains(NodeConstants.StartNode));
+                currentSituation.NodeData.Find(node => node.NodeType.Contains(NodeConstants.StartNode));
 
             allNodes =
                 TypeExtensions.MergeFieldListsIntoOneImplementingType<NodeModel, SituationSaveData>(currentSituation);
@@ -186,7 +186,7 @@ namespace Chocolate4.Dialogue.Runtime
             List<Type> collectionTypes = 
                 TypeExtensions.GetTypes<IDialogueMasterCollection>(FilePathConstants.Chocolate4).ToList();
 
-            string collectionName = FilePathConstants.GetCollectionName(dialogueAsset.fileName);
+            string collectionName = FilePathConstants.GetCollectionName(dialogueAsset.DialogueData.FileName);
             Type assetMatchedCollectionType  = 
                 collectionTypes.Find(type => type.Name.Equals(collectionName));
 
@@ -200,7 +200,7 @@ namespace Chocolate4.Dialogue.Runtime
             if (current == null)
             {
                 current = GetStartOrFromNodeFrom(previousSituationId);
-                Debug.Log($"{previousNode.GetNodeType()} could not find next node in {FindSituationName(currentSituation)} situation. Redirecting to {current.GetNodeType()}.");
+                Debug.Log($"{previousNode.GetNodeType()} could not find next node in {currentSituation.DisplayName} situation. Redirecting to {current.GetNodeType()}.");
                 return false;
             }
 
@@ -214,7 +214,7 @@ namespace Chocolate4.Dialogue.Runtime
                 return null;
             }
 
-            List<PortData> outputPortDataCollection = currentNode.OutputPortDataCollection;
+            List<PortModel> outputPortDataCollection = currentNode.OutputPortModels;
 
             string nodeType = currentNode.GetNodeType();
 
@@ -250,7 +250,7 @@ namespace Chocolate4.Dialogue.Runtime
             return null;
         }
 
-        private NodeModel HandleEventPropertyNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleEventPropertyNode(List<PortModel> outputPortDataCollection)
         {
             string eventName = FindPropertyNameById(((PropertyNodeSaveData)currentNode).propertyID);
             collection.CollectionType.GetMethod(
@@ -278,14 +278,14 @@ namespace Chocolate4.Dialogue.Runtime
             return fromNode ?? FindNode<NodeModel>(node => node.IsNodeOfType(NodeConstants.StartNode));
         }
 
-        private NodeModel HandleExpressionNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleExpressionNode(List<PortModel> outputPortDataCollection)
         {
             parseAdapter.EvaluateSetExpressions(((TextNodeSaveData)currentNode).text);
 
             return FindNode(outputPortDataCollection.First().otherNodeID);
         }
 
-        private NodeModel HandleConditionNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleConditionNode(List<PortModel> outputPortDataCollection)
         {
             if (parseAdapter.EvaluateConditions(((TextNodeSaveData)currentNode).text))
             {
@@ -295,7 +295,7 @@ namespace Chocolate4.Dialogue.Runtime
             return FindNode(outputPortDataCollection.Last().otherNodeID);
         }
 
-        private NodeModel HandleChoiceNode(List<PortData> outputPortDataCollection)
+        private NodeModel HandleChoiceNode(List<PortModel> outputPortDataCollection)
         {
             int count = outputPortDataCollection.Count;
             if (count == 1)
@@ -336,17 +336,16 @@ namespace Chocolate4.Dialogue.Runtime
 
         private string FindPropertyNameById(string id)
         {
-            return dialogueAsset.graphSaveData.blackboardSaveData.
-                dialoguePropertiesSaveData.Find(property => property.id.Equals(id)).displayName;
+            return dialogueAsset.DialogueData.BlackboardData.
+                dialoguePropertiesSaveData.Find(property => property.Id.Equals(id)).DisplayName;
         }
 
         private SituationSaveData FindSituationByName(string situationName)
         {
-            TreeItemSaveData matchedData = 
-                dialogueAsset.treeSaveData.treeItemData.Find(itemData => itemData.rootItem.displayName.Equals(situationName));
             try
             {
-                return dialogueAsset.graphSaveData.situationSaveData.Find(data => data.Id == matchedData.rootItem.id);
+                return dialogueAsset.DialogueData.SituationData
+                    .Find(situation => situation.DisplayName.Equals(situationName));
             }
             catch (NullReferenceException)
             {
@@ -356,8 +355,8 @@ namespace Chocolate4.Dialogue.Runtime
 
         private string FindSituationName(string id)
         {
-            TreeItemSaveData matchedData =
-                dialogueAsset.treeSaveData.treeItemData.Find(itemData => itemData.rootItem.id.Equals(id));
+            var matchedData =
+                dialogueAsset.DialogueData.SituationData.FirstOrDefault(situation => situation.Id.Equals(id));
 
             if (matchedData == null)
             {
@@ -365,9 +364,7 @@ namespace Chocolate4.Dialogue.Runtime
                 return string.Empty;
             }
 
-            return matchedData.rootItem.displayName;
+            return matchedData.DisplayName;
         }
-
-        private string FindSituationName(SituationSaveData saveData) => FindSituationName(saveData.Id);
     }
 }
