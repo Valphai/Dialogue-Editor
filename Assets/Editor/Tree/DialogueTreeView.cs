@@ -24,7 +24,12 @@ namespace Chocolate4.Dialogue.Edit.Tree
         internal TreeView TreeView { get; private set; }
         internal DialogueDataOwner DataOwner { get; private set; }
 
-        internal List<DialogueTreeItem> DialogueTreeItems => DataOwner.TreeData.TreeItemData
+        private List<TreeItemModel> TreeModels => DataOwner.SituationsData
+            .Select(situation => situation.TreeItemData)
+            .ToList();
+
+        internal List<DialogueTreeItem> DialogueTreeItems => DataOwner.SituationsData
+            .Select(situation => situation.TreeItemData)
             .Select(model => model.RootItem)
             .ToList();
 
@@ -34,8 +39,8 @@ namespace Chocolate4.Dialogue.Edit.Tree
 
         private int SelectedIndex
         {
-            get => DataOwner.TreeData.SelectedIndex;
-            set => DataOwner.TreeData.SelectedIndex = value;
+            get => DataOwner.SelectedTreeIndex;
+            set => DataOwner.SelectedTreeIndex = value;
         }
 
         internal event Action<string> OnSituationSelected;
@@ -46,7 +51,7 @@ namespace Chocolate4.Dialogue.Edit.Tree
         public void Rebuild()
         {
             CreateTreeView();
-            RebuildTree(DataOwner.TreeData);
+            RebuildTree(TreeModels);
         }
 
         public void Search(string value)
@@ -54,7 +59,7 @@ namespace Chocolate4.Dialogue.Edit.Tree
             if (string.IsNullOrEmpty(value))
             {
                 SelectedIndex = TreeView.viewController.GetIndexForId(cachedSelectedId);
-                RebuildTree(DataOwner.TreeData);
+                RebuildTree(TreeModels);
                 return;
             }
 
@@ -88,7 +93,7 @@ namespace Chocolate4.Dialogue.Edit.Tree
             string name = ObjectNames.GetUniqueName(ExistingNames, defaultName);
             string parentId = TreeView.GetItemDataForId<DialogueTreeItem>(groupId).Id;
 
-            DialogueTreeItem treeItem = new DialogueTreeItem(name);
+            DialogueTreeItem treeItem = new DialogueTreeItem(name, TreeView.GetDepthOfItemById(groupId), parentId);
             AddItemToGroup(treeItem, groupId);
 
             if (!idOverride.Equals(string.Empty))
@@ -96,29 +101,26 @@ namespace Chocolate4.Dialogue.Edit.Tree
                 treeItem.Id = idOverride;
             }
 
-            DataOwner.Owner.RegisterCompleteObjectUndo($"Added tree item {name}");
-            DataOwner.AddTreeItem(treeItem, TreeView.GetDepthOfItemById(groupId), parentId);
-
             OnTreeItemAdded?.Invoke(treeItem);
         }
 
-        private void RebuildTree(TreeSaveData treeSaveData)
+        private void RebuildTree(List<TreeItemModel> treeItemModels)
         {
-            TreeItemModel[] rootModels = treeSaveData.TreeItemData
+            TreeItemModel[] rootModels = treeItemModels
                 .Where(itemSaveData => itemSaveData.Depth == 0)
                 .ToArray();
 
             Dictionary<DialogueTreeItem, List<DialogueTreeItem>> parentToChildren = rootModels
                 .ToDictionary(root => root.RootItem, value => new List<DialogueTreeItem>());
 
-            int maxDepth = treeSaveData.TreeItemData.Max(model => model.Depth);
+            int maxDepth = treeItemModels.Max(model => model.Depth);
             for (int depth = 1; depth <= maxDepth; depth++)
             {
-                var modelsAtDepth = treeSaveData.TreeItemData.Where(model => model.Depth == depth);
+                var modelsAtDepth = treeItemModels.Where(model => model.Depth == depth);
                 foreach (var model in modelsAtDepth)
                 {
                     var parentItem = 
-                        treeSaveData.TreeItemData.Find(model => model.RootItem.Id.Equals(model.ParentId)).RootItem;
+                        treeItemModels.Find(model => model.RootItem.Id.Equals(model.ParentId)).RootItem;
 
                     if (!parentToChildren.TryAdd(parentItem, new List<DialogueTreeItem>() { model.RootItem }))
                         parentToChildren[parentItem].Add(model.RootItem);
@@ -203,7 +205,9 @@ namespace Chocolate4.Dialogue.Edit.Tree
                 return;
             }
 
-            var movedModel = DataOwner.TreeData.TreeItemData.Find(model => model.RootItem.Id.Equals(movedItem.Id));
+            var movedModel = DataOwner.SituationsData
+                .Select(situation => situation.TreeItemData)
+                .FirstOrDefault(model => model.RootItem.Id.Equals(movedItem.Id));
             if (movedModel == null)
             {
                 Debug.LogError($"Could not find model by moved id {movedItem.Id}");

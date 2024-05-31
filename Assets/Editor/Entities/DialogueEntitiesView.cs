@@ -14,7 +14,7 @@ using Chocolate4.Dialogue.Edit.Graph.Utilities;
 
 namespace Chocolate4.Dialogue.Edit.Entities
 {
-    public class DialogueEntitiesView : VisualElement, IRebuildable<EntitiesData>, ISearchable
+    public class DialogueEntitiesView : VisualElement, IRebuildable, ISearchable
     {
         private List<DialogueEntity> displayedEntities;
         private List<DialogueEntity> cachedDialogueEntities;
@@ -27,7 +27,7 @@ namespace Chocolate4.Dialogue.Edit.Entities
             ResolveDependencies();
         }
 
-        public void Rebuild(EntitiesData entitiesData)
+        public void Rebuild()
         {
             cachedDialogueEntities = entitiesData.cachedEntities.ToList();
             displayedEntities = cachedDialogueEntities;
