@@ -3,7 +3,6 @@ using Chocolate4.Dialogue.Edit.Graph.Utilities.DangerLogger;
 using Chocolate4.Dialogue.Edit.Tree;
 using Chocolate4.Dialogue.Edit.Utilities;
 using Chocolate4.Dialogue.Edit.Graph.Utilities;
-using Chocolate4.Dialogue.Runtime.Asset;
 using Chocolate4.Dialogue.Runtime.Saving;
 using Chocolate4.Dialogue.Runtime.Utilities;
 using Chocolate4.Dialogue.Runtime.Entities;
@@ -33,7 +32,7 @@ namespace Chocolate4.Dialogue.Edit
 
         internal DialogueAssetManager DialogueAssetManager { get; private set; }
         public DialogueEntitiesView EntitiesView { get; private set; }
-        public DialogueGraphView GraphView { get; private set; }
+        internal DialogueGraphView GraphView { get; private set; }
         public DialogueTreeView DialogueTreeView { get; private set; }
 
         [SerializeField]
@@ -117,11 +116,11 @@ namespace Chocolate4.Dialogue.Edit
                 return;
             }
 
+            DialogueTreeView.OnTreeItemRenamed -= DialogueAssetManager.DialogueTreeView_OnTreeItemRenamed;
             DialogueTreeView.OnTreeItemRenamed -= GraphView.DialogueTreeView_OnTreeItemRenamed;
             DialogueTreeView.OnSituationSelected -= GraphView.DialogueTreeView_OnSituationSelected;
             DialogueTreeView.OnTreeItemRemoved -= GraphView.DialogueTreeView_OnTreeItemRemoved;
 
-            GraphView.SituationCache.OnSituationCached -= DialogueTreeView.GraphView_OnSituationCached;
 
             DangerLogger.Clear();
             StoreData();
@@ -136,18 +135,14 @@ namespace Chocolate4.Dialogue.Edit
                 return;
             }
 
-            GraphSaveData graphData = GraphView.Save();
-            TreeSaveData treeData = DialogueTreeView.Save();
             EntitiesData entitiesData = EntitiesView.Save();
-            DialogueAssetManager.Save(graphData, treeData, entitiesData);
+            DialogueAssetManager.Save(entitiesData);
         }
 
         private void StoreData()
         {
-            TreeSaveData treeSaveData = DialogueTreeView.Save();
-            GraphSaveData graphSaveData = GraphView.Save();
             EntitiesData entitiesData = EntitiesView.Save();
-            DialogueAssetManager.Store(graphSaveData, treeSaveData, entitiesData);
+            DialogueAssetManager.Store(entitiesData);
         }
 
         private void Initialize()
@@ -188,9 +183,13 @@ namespace Chocolate4.Dialogue.Edit
             DialogueTreeView.OnSituationSelected += GraphView.DialogueTreeView_OnSituationSelected;
             DialogueTreeView.OnTreeItemRemoved += GraphView.DialogueTreeView_OnTreeItemRemoved;
 
-            DialogueTreeView.Initialize(DialogueAssetManager.ImportedAsset.treeSaveData);
+            DialogueTreeView.OnTreeItemRenamed += DialogueAssetManager.DialogueTreeView_OnTreeItemRenamed;
+            DialogueTreeView.OnTreeItemAdded += DialogueAssetManager.DialogueTreeView_OnTreeItemAdded;
+        }
 
-            GraphView.SituationCache.OnSituationCached += DialogueTreeView.GraphView_OnSituationCached;
+        private void DialogueTreeView_OnTreeItemAdded(DialogueTreeItem obj)
+        {
+            throw new NotImplementedException();
         }
 
         private void Rebuild()
@@ -260,9 +259,8 @@ namespace Chocolate4.Dialogue.Edit
 
             searchField.RegisterValueChangedCallback(OnSearch);
 
-            saveButton = new Button() {
-                text = "Save"
-            }.WithOnClick(TrySave);
+            saveButton = new Button() { text = "Save"}
+                .WithOnClick(TrySave);
             saveButton.WithMaxWidth(GraphConstants.SaveButtonWidth);
 
             toolbar.Add(searchField);
@@ -314,12 +312,7 @@ namespace Chocolate4.Dialogue.Edit
 
         private void AddGraphHeaderButtons()
         {
-            Action onClickAdd = () => {
-                DialogueTreeItem item =
-                    DialogueTreeView.AddTreeItem(TreeViewConstants.DefaultSituationName);
-
-                GraphView.SituationCache.TryCache(new SituationSaveData(item.id, null, null));
-            };
+            Action onClickAdd = () => DialogueTreeView.AddTreeItem(TreeViewConstants.DefaultSituationName);
 
             VisualElement buttonsContainer = new VisualElement().WithHorizontalGrow();
             VisualElementBuilder.AddHeaderButtons(onClickAdd, TreeViewConstants.DefaultSituationName, buttonsContainer);

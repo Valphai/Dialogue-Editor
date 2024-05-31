@@ -1,3 +1,4 @@
+using Chocolate4.Dialogue.Edit.Asset;
 using Chocolate4.Dialogue.Edit.Graph.BlackBoard;
 using Chocolate4.Dialogue.Edit.Graph.Nodes;
 using Chocolate4.Dialogue.Edit.Graph.Utilities;
@@ -17,19 +18,17 @@ using SearchWindow = Chocolate4.Dialogue.Edit.Search.SearchWindow;
 
 namespace Chocolate4.Dialogue.Edit.Graph
 {
-    public class DialogueGraphView : GraphView, IRebuildable<GraphSaveData>
+    internal class DialogueGraphView : GraphView, IRebuildable
     {
-        public const string DefaultGroupName = "Dialogue Group";
-        
-        internal string activeSituationId = string.Empty;
+        internal const string DefaultGroupName = "Dialogue Group";
 
         private BlackboardProvider blackboardProvider;
         private SearchWindow searchWindow;
 
-        public DragSelectablesHandler DragSelectablesHandler { get; private set; }
-        internal SituationCache SituationCache { get; private set; }
+        internal DialogueDataOwner DataOwner { get; private set; }
+        internal DragSelectablesHandler DragSelectablesHandler { get; private set; }
 
-        public void Initialize()
+        internal void Initialize()
         {
             HandleCallbacks();
             ResolveDependencies();
@@ -86,40 +85,33 @@ namespace Chocolate4.Dialogue.Edit.Graph
             return compatiblePorts;
         }
 
-        public GraphSaveData Save()
+        public void Rebuild()
         {
-            CacheActiveSituation();
-            return new GraphSaveData()
+            if (!DataOwner.TryFindActiveSituation(out SituationSaveData situationData))
             {
-                graphViewPosition = contentViewContainer.transform.position,
-                graphViewZoom = contentViewContainer.transform.scale,
-                situationSaveData = SituationCache.Cache.ToList(),
-                blackboardSaveData = blackboardProvider.Save()
-            };
-        }
+                return;
+            }
 
-        public void Rebuild(GraphSaveData graphSaveData)
-        {
-            contentViewContainer.transform.position = graphSaveData.graphViewPosition;
-            contentViewContainer.transform.scale = graphSaveData.graphViewZoom;
+            contentViewContainer.transform.position = situationData.GraphViewPosition;
+            contentViewContainer.transform.scale = situationData.GraphViewZoom;
 
             DeleteElements(graphElements);
-            RebuildGraph(graphSaveData);
+            RebuildGraph(situationData);
 
-            BlackboardSaveData blackboardSaveData = graphSaveData.blackboardSaveData;
+            BlackboardSaveData blackboardSaveData = DataOwner.BlackboardData;
             if (blackboardSaveData != null)
             {
                 blackboardProvider.Rebuild(blackboardSaveData);
             }
         }
 
-        public Vector2 GetLocalMousePosition(Vector2 mousePosition)
+        internal Vector2 GetLocalMousePosition(Vector2 mousePosition)
         {
             Vector2 mousePositionWorld = mousePosition;
             return contentViewContainer.WorldToLocal(mousePositionWorld);
         }
 
-        public void AddNode(Vector2 startingPosition, BaseNode node)
+        internal void AddNode(Vector2 startingPosition, BaseNode node)
         {
             node.Initialize(startingPosition);
             node.Draw();
@@ -128,7 +120,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
             AddElement(node);
         }
 
-        public BaseNode CreateNode(Vector2 startingPosition, Type nodeType)
+        internal BaseNode CreateNode(Vector2 startingPosition, Type nodeType)
         {
             BaseNode node = (BaseNode)Activator.CreateInstance(nodeType);
             AddNode(startingPosition, node);
@@ -168,17 +160,15 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
         internal void DialogueTreeView_OnSituationSelected(string newSituationId)
         {
-            if (!activeSituationId.Equals(string.Empty))
-            {
-                CacheActiveSituation();
-            }
+            bool foundNewSituation = DataOwner.TryFindSituation(newSituationId, out SituationSaveData situationData);
 
-            activeSituationId = newSituationId;
+            DataOwner.Owner.RegisterCompleteObjectUndo($"Selected situation {situationData.DisplayName}");
+            DataOwner.ActiveSituationId = newSituationId;
 
             DeleteElements(graphElements);
-            if (SituationCache.IsCached(newSituationId, out SituationSaveData situationSaveData))
+            if (foundNewSituation)
             {
-                RebuildGraph(situationSaveData);
+                RebuildGraph(situationData);
             }
 
             blackboardProvider.UpdatePropertyBinds();
@@ -186,14 +176,15 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
         internal void DialogueTreeView_OnTreeItemRemoved(DialogueTreeItem treeItem)
         {
-            if (!SituationCache.IsCached(treeItem.id, out SituationSaveData cachedSituationSaveData))
+            if (!DataOwner.TryFindSituation(treeItem.Id, out SituationSaveData cachedSituationData))
             {
                 return;
             }
 
-            if (!SituationCache.TryRemove(cachedSituationSaveData))
+            DataOwner.Owner.RegisterCompleteObjectUndo($"Removed situation {cachedSituationData.DisplayName}");
+            if (!DataOwner.SituationsData.Remove(cachedSituationData))
             {
-                Debug.LogError($"Situation {cachedSituationSaveData.situationId} could not be removed.");
+                Debug.LogError($"Situation {cachedSituationData.DisplayName} could not be removed.");
                 return;
             }
         }
@@ -284,7 +275,6 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
         private void ResolveDependencies()
         {
-            SituationCache = new SituationCache(null);
             DragSelectablesHandler = new DragSelectablesHandler();
 
             searchWindow = ScriptableObject.CreateInstance<SearchWindow>();
@@ -302,73 +292,70 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
             elementsAddedToGroup = OnElementsAddedToGroup;
             elementsRemovedFromGroup = OnElementsRemovedFromGroup;
+            groupTitleChanged += OnGroupTitleChanged;
 
             serializeGraphElements += CutCopyOperation;
             unserializeAndPaste += PasteOperation;
+
+            RegisterCallback<MouseMoveEvent>(OnMouseMove);
         }
 
-        private void CacheActiveSituation()
+        private void OnMouseMove(MouseMoveEvent evt)
         {
-            SituationSaveData situationSaveData =
-                StructureSaver.SaveSituation(activeSituationId, this);
-
-            SituationCache.TryCache(situationSaveData);
-        }
-
-        private void RebuildGraph(GraphSaveData graphSaveData)
-        {
-            List<SituationSaveData> situationSaveData = graphSaveData.situationSaveData;
-            if (situationSaveData.IsNullOrEmpty())
+            if (!DataOwner.TryFindActiveSituation(out var foundSituation))
             {
                 return;
             }
 
-            SituationCache = new SituationCache(situationSaveData);
+            foundSituation.GraphViewPosition = contentViewContainer.transform.position;
+            foundSituation.GraphViewZoom = contentViewContainer.transform.scale;
+        }
 
-            SituationSaveData situationData = situationSaveData.Find(
-                data => data.situationId.Equals(activeSituationId)
-            );
-
-            if (situationData == null)
+        private void OnGroupTitleChanged(Group group, string newTitle)
+        {
+            if (group is not CustomGroup customGroup)
             {
+                Debug.LogError($"Could not rename group {group.title}!");
                 return;
             }
 
-            RebuildGraph(situationData);
+            DataOwner.Owner.RegisterCompleteObjectUndo($"Renamed group to {newTitle}");
+            customGroup.Rename(newTitle);
         }
 
         private void RebuildGraph(SituationSaveData situationData)
         {
-            if (!situationData.TryMergeDataIntoHolder(out List<NodeModel> dataHolders))
+            List<NodeModel> nodeModels = situationData.NodeData;
+            if (!nodeModels.IsNullOrEmpty())
             {
                 AddStartingNodes();
                 return;
             }
 
-            RebuildNodesAndGroups(dataHolders, situationData.groupData, out List<BaseNode> _, out List<CustomGroup> _);
+            RebuildNodesAndGroups(nodeModels, situationData.GroupData, out List<BaseNode> _, out List<CustomGroup> _);
         }
 
-        private List<BaseNode> CreateNodes(List<NodeModel> dataHolders)
+        private List<BaseNode> CreateNodes(List<NodeModel> nodeModels)
         {
             List<BaseNode> nodes = new List<BaseNode>();
             List<Type> nodeTypes = TypeExtensions.GetTypes<BaseNode>(FilePathConstants.Chocolate4).ToList();
-            foreach (NodeModel dataHolder in dataHolders)
+            foreach (NodeModel nodeModel in nodeModels)
             {
-                Type matchedType = nodeTypes.First(type => type.ToString().Contains(dataHolder.NodeType));
-                BaseNode node = CreateNode(dataHolder.Position, matchedType);
-                node.Load(dataHolder);
+                Type matchedType = nodeTypes.First(type => type.ToString().Contains(nodeModel.NodeType));
+                BaseNode node = CreateNode(nodeModel.Position, matchedType);
+                node.Load(nodeModel);
                 nodes.Add(node);
             }
 
             return nodes;
         }
 
-        private List<CustomGroup> CreateGroups(List<GroupSaveData> groupData)
+        private List<CustomGroup> CreateGroups(List<GroupModel> groupData)
         {
             List<CustomGroup> groups = new List<CustomGroup>();
-            foreach (GroupSaveData data in groupData)
+            foreach (GroupModel data in groupData)
             {
-                CustomGroup group = CreateGroup(data.position);
+                CustomGroup group = CreateGroup(data.Position);
                 group.Load(data);
                 groups.Add(group);
             }
@@ -393,8 +380,8 @@ namespace Chocolate4.Dialogue.Edit.Graph
         {
             foreach (BaseNode node in nodes)
             {
-                List<PortData> allOutputPortData = node.GetAllPortData(Direction.Output);
-                foreach (PortData portData in allOutputPortData)
+                List<PortModel> allOutputPortData = node.GetAllPortData(Direction.Output);
+                foreach (PortModel portData in allOutputPortData)
                 {
                     if (string.IsNullOrEmpty(portData.thisPortName))
                     {
@@ -413,7 +400,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
             }
         }
 
-        private void ConnectPorts(Port port, PortData portData, List<BaseNode> connections)
+        private void ConnectPorts(Port port, PortModel portData, List<BaseNode> connections)
         {
             foreach (BaseNode otherNode in connections)
             {
@@ -572,8 +559,8 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
             Vector2 center = GetLocalMousePosition(DialogueEditorWindow.Window.rootVisualElement.contentRect.center);
 
-            GraphUtilities.GeneratePastedIds(saveData.groupData, cache);
-            RebuildNodesAndGroups(cache, saveData.groupData, out List<BaseNode> nodes, out List<CustomGroup> _);
+            GraphUtilities.GeneratePastedIds(saveData.GroupData, cache);
+            RebuildNodesAndGroups(cache, saveData.GroupData, out List<BaseNode> nodes, out List<CustomGroup> _);
 
             nodes.ForEach(node => {
                 Vector2 position = node.GetPositionRaw();
@@ -584,14 +571,14 @@ namespace Chocolate4.Dialogue.Edit.Graph
         }
 
         private void RebuildNodesAndGroups(
-            List<NodeModel> dataHolders, List<GroupSaveData> groupData,
+            List<NodeModel> nodeModels, List<GroupModel> groupModels,
             out List<BaseNode> nodes, out List<CustomGroup> groups
         )
         {
-            nodes = CreateNodes(dataHolders);
+            nodes = CreateNodes(nodeModels);
             RebuildConnections(nodes);
 
-            groups = CreateGroups(groupData);
+            groups = CreateGroups(groupModels);
             RebuildGroupMembers(nodes, groups);
         }
 
@@ -599,7 +586,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
         {
             elements = elements.ToList();
             List<NodeModel> nodeCopyCache = new List<NodeModel>();
-            List<GroupSaveData> groupCopyCache = new List<GroupSaveData>();
+            List<GroupModel> groupCopyCache = new List<GroupModel>();
 
             Dictionary<string, List<NodeModel>> oldGroupIds = new Dictionary<string, List<NodeModel>>();
 
@@ -619,7 +606,7 @@ namespace Chocolate4.Dialogue.Edit.Graph
 
                 if (element is CustomGroup customGroup)
                 {
-                    GroupSaveData groupData = customGroup.Save();
+                    GroupModel groupData = customGroup.Save();
                     groupCopyCache.Add(groupData);
                     continue;
                 }
