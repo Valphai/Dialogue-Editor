@@ -16,17 +16,10 @@ namespace Chocolate4.Dialogue.Runtime.Entities
 
         public IReadOnlyCollection<DialogueEntity> DialogueEntities => dataBase;
 
-        public bool TryGetEntity(string identifier, out DialogueEntity entity)
+        public bool TryGetEntity(string id, out DialogueEntity entity)
         {
-            entity =
-                DialogueEntities.FirstOrDefault(entity => entity.Identifier == identifier);
-
-            if (entity == null)
-            {
-                return false;
-            }
-
-            return true;
+            entity = DialogueEntities.FirstOrDefault(entity => entity.Id == id);
+            return entity != null;
         }
 
         [ContextMenu("Reload")]

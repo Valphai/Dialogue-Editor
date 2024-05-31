@@ -1,4 +1,5 @@
-﻿using Chocolate4.Dialogue.Runtime.Common;
+﻿using Chocolate4.Dialogue.Edit.Graph.Utilities;
+using Chocolate4.Dialogue.Runtime.Common;
 using Chocolate4.Dialogue.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using UnityEngine;
 
 namespace Chocolate4.Dialogue.Runtime.Saving
 {
-    public class DialogueEntity : ScriptableObject, ICloneable, IDisposable
+    public class DialogueEntity : ScriptableObject, IHaveId, ICloneable, IDisposable
     {
         public Sprite entityImage;
         public string entityName = string.Empty;
@@ -17,27 +18,26 @@ namespace Chocolate4.Dialogue.Runtime.Saving
         private bool original = true;
 
         [field:SerializeField, HideInInspector]
-        public string Identifier { get; private set; }
+        public string Id { get; private set; }
 
         [InterfaceList, SerializeReference, NonReorderable]
         public List<IEntityProcessor> entityProcessors = new List<IEntityProcessor>();
 
-        [ContextMenu("Initialize")]
         public void Initialize()
         {
-            if (!string.IsNullOrEmpty(Identifier))
+            if (!string.IsNullOrEmpty(Id))
             {
                 return;
             }
 
-            Identifier = Guid.NewGuid().ToString();
+            Id = Guid.NewGuid().ToString();
         }
 
         public object Clone()
         {
             DialogueEntity clone = CreateInstance<DialogueEntity>();
 
-            clone.Identifier = Identifier;
+            clone.Id = Id;
             clone.entityImage = entityImage;
             clone.entityName = entityName;
             clone.extraImages = extraImages;

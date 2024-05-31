@@ -46,7 +46,7 @@ namespace Chocolate4.Dialogue.Edit.Entities
                 }
 
                 lastPropPath = property.propertyPath;
-                if (lastPropPath.Contains("m_") || lastPropPath.Contains(nameof(DialogueEntity.Identifier)))
+                if (lastPropPath.Contains("m_") || lastPropPath.Contains(nameof(DialogueEntity.Id)))
                 {
                     continue;
                 }
