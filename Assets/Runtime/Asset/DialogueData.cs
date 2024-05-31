@@ -11,8 +11,8 @@ namespace Chocolate4.Dialogue.Runtime.Asset
         public string FileName { get; set; }
         [JsonProperty]
         public BlackboardSaveData BlackboardData { get; set; }
-        [JsonProperty]
-        public TreeSaveData TreeData { get; set; }
+        //[JsonProperty]
+        //public EntitiesData EntitiesData { get; set; }
 
         [JsonIgnore]
         public List<SituationSaveData> SituationData { get; set; }
