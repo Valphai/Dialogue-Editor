@@ -1,18 +1,18 @@
 ﻿using Chocolate4.Dialogue.Runtime.Saving;
+using Chocolate4.Dialogue.Runtime.Utilities;
+using Chocolate4.Dialogue.Runtime.Entities;
+using Chocolate4.Dialogue.Runtime.Asset;
 using Chocolate4.Dialogue.Edit.Tree;
 using Chocolate4.Dialogue.Edit.Graph;
-using System.IO;
-using UnityEditor;
-using UnityEngine;
 using Chocolate4.Dialogue.Edit.CodeGeneration;
-using System.Linq;
-using Chocolate4.Dialogue.Runtime.Utilities;
 using Chocolate4.Dialogue.Edit.Entities;
 using Chocolate4.Dialogue.Edit.Utilities;
 using Chocolate4.Dialogue.Edit.Entities.Utilities;
+using System.IO;
+using UnityEditor;
+using UnityEngine;
+using System.Linq;
 using System.Collections.Generic;
-using Chocolate4.Dialogue.Runtime.Entities;
-using Chocolate4.Dialogue.Runtime.Asset;
 using Newtonsoft.Json;
 
 namespace Chocolate4.Dialogue.Edit.Asset
@@ -47,12 +47,39 @@ namespace Chocolate4.Dialogue.Edit.Asset
             Store(importedAsset.graphSaveData, importedAsset.TreeData, entitiesData);
         }
 
+        internal void DialogueTreeView_OnTreeItemAdded(DialogueTreeItem treeItem)
+        {
+            if (dataOwner.TryFindSituation(treeItem.Id, out var _))
+            {
+                return;
+            }
+
+            dataOwner.Owner.RegisterCompleteObjectUndo($"Added tree item {treeItem.DisplayName}");
+            dataOwner.AddTreeItem(treeItem);
+            SituationSaveData item = new SituationSaveData(treeItem.Id, treeItem.DisplayName);
+            dataOwner.SituationsData.Add(item);
+        }
+        
+        internal void DialogueTreeView_OnTreeItemRenamed(DialogueTreeItem treeItem)
+        {
+            var renamedModel = dataOwner.SituationsEditorData
+                .Select(situation => situation.SituationTreeItem)
+                .FirstOrDefault(model => model.Id.Equals(treeItem.Id));
+            if (renamedModel == null)
+            {
+                Debug.LogError($"Could not find model to rename by id {treeItem.Id}");
+                return;
+            }
+
+            renamedModel.DisplayName = treeItem.DisplayName;
+        }
+
         internal void Rebuild(DialogueTreeView treeView, DialogueGraphView graphView, DialogueEntitiesView entitiesView)
         {
             EntitiesDatabase.Reload();
-            treeView.Rebuild(dataOwner.TreeData);
-            graphView.Rebuild(dataOwner.SituationsData);
-            entitiesView.Rebuild(dataOwner.EntitiesData);
+            treeView.Rebuild();
+            graphView.Rebuild();
+            entitiesView.Rebuild();
         }
 
         internal void Store(GraphSaveData graphData, TreeSaveData treeData, EntitiesData entitiesData)
@@ -60,7 +87,7 @@ namespace Chocolate4.Dialogue.Edit.Asset
             dataRebuilder.Store(graphData, treeData, entitiesData);
         }
 
-        internal void Save(GraphSaveData graphData, TreeSaveData treeData, EntitiesData entitiesData)
+        internal void Save(EntitiesData entitiesData)
         {
             Debug.Assert(ImportedAsset != null);
 
