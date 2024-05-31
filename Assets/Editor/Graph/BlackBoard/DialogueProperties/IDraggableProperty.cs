@@ -2,7 +2,7 @@
 
 namespace Chocolate4.Dialogue.Edit.Graph.BlackBoard
 {
-    public interface IDraggableProperty
+    internal interface IDraggableProperty
     {
         BaseNode ToConcreteNode();
     }

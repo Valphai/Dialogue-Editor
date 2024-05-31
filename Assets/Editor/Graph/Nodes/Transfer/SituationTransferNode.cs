@@ -9,7 +9,7 @@ using UnityEngine.UIElements;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 {
-    public abstract class SituationTransferNode : BaseNode
+    internal abstract class SituationTransferNode : BaseNode
     {
         private PopupField<DialogueTreeItem> popupField;
 

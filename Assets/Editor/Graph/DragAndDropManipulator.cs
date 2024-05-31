@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Chocolate4.Dialogue.Edit.Graph
 {
-    public class DragAndDropManipulator : PointerManipulator
+    internal class DragAndDropManipulator : PointerManipulator
     {
         private DialogueGraphView dialogueGraphView;
 

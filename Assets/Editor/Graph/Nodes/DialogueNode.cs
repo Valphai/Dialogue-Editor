@@ -8,7 +8,7 @@ using Chocolate4.Dialogue.Edit.Entities.Utilities;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 {
-    public class DialogueNode : BaseNode, ITextHolder
+    internal class DialogueNode : BaseNode, ITextHolder
     {
         private TextField textField;
         private DialogueEntity speaker;
@@ -24,7 +24,7 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
             return new DialogueNodeSaveData() 
             { 
                 text = Text, 
-                speakerIdentifier = speaker == null ? string.Empty : speaker.Identifier, 
+                speakerIdentifier = speaker == null ? string.Empty : speaker.Id, 
                 nodeSaveData = saveData };
         }
 

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Utilities
 {
-    public class DragSelectablesHandler
+    internal class DragSelectablesHandler
     {
         [field: SerializeField]
         public IDraggableProperty SelectedProperty { get; private set; }

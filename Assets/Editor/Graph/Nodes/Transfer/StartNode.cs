@@ -1,10 +1,14 @@
 using Chocolate4.Dialogue.Edit.Utilities;
-using UnityEditor.Experimental.GraphView;
+using Chocolate4.Dialogue.Runtime.Saving;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 {
-    public class StartNode : BaseNode
+    internal class StartNode : BaseNode
     {
+        public StartNode(NodeModel model) : base(model)
+        {
+        }
+
         public override string Name { get; set; } = "Start Node";
 
         protected override void DrawTitle()

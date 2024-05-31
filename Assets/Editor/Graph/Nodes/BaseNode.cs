@@ -10,65 +10,81 @@ using Chocolate4.Dialogue.Runtime.Utilities;
 using Chocolate4.Dialogue.Edit.Graph.Utilities.DangerLogger;
 using System.Linq;
 using Chocolate4.Dialogue.Graph.Edit;
+using System.Runtime.Serialization;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 {
-    public abstract class BaseNode : Node, ISaveable<NodeModel>, IHaveId, IDangerCauser
+    internal abstract class BaseNode : Node, ISaveable<NodeModel>, IDangerCauser
     {
-        public string GroupId { get; set; }
-        public string Id { get; set; }
-        public Type NodeType { get; set; }
+        private readonly NodeModel model;
+
         public abstract string Name { get; set; }
         public bool IsMarkedDangerous { get; set; }
 
+        public string Id => model.NodeId;
+        public string GroupId
+        {
+            get => model.GroupId;
+            set => model.GroupId = value;
+        }
+
         public override string ToString() => Name;
 
-        public virtual NodeModel Save()
+        protected BaseNode(NodeModel model)
         {
-            List<PortData> inputPortData = inputContainer.Query<DataPort>().ToList().Select(port => port.Save()).ToList();
-            List<PortData> outputPortData = outputContainer.Query<DataPort>().ToList().Select(port => port.Save()).ToList();
-
-            return new NodeModel()
-            {
-                InputPortDataCollection = inputPortData,
-                OutputPortDataCollection = outputPortData,
-                NodeId = Id,
-                NodeType = NodeType.ToString(),
-                Position = this.GetPositionRaw(),
-                GroupId = GroupId,
-            };
+            this.model = model;
         }
 
-        public virtual void Load(NodeModel saveData)
-        {
-            Id = saveData.NodeId;
-            GroupId = saveData.GroupId;
-
-            List<PortData> inputPortData = saveData.InputPortDataCollection.ToList();
-            List<PortData> outputPortData = saveData.OutputPortDataCollection.ToList();
-            LoadPortTypes(inputPortData, inputContainer);
-            LoadPortTypes(outputPortData, outputContainer);
-        }
-
-        public virtual void Initialize(Vector3 startingPosition)
+        internal virtual void Initialize(Vector3 startingPosition)
         {
             Id = Guid.NewGuid().ToString();
             NodeType = GetType();
 
             SetPosition(new Rect(startingPosition, Vector2.zero));
+
+            RegisterCallback<PointerMoveEvent>(OnPointerMove);
         }
 
-        public virtual void PostInitialize()
-        {
-        }
-
-        public virtual void Draw()
+        internal virtual void Draw()
         {
             DrawTitle();
             DrawPorts();
             DrawContent();
 
             RefreshExpandedState();
+        }
+
+        internal virtual void PostInitialize()
+        {
+        }
+
+        public NodeModel Save()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Load(NodeModel saveData)
+        {
+            LoadPortTypes(model.InputPortModels, inputContainer);
+            LoadPortTypes(model.OutputPortModels, outputContainer);
+        }
+
+        [OnSerializing]
+        protected virtual void OnSerializingMethod(StreamingContext context)
+        {
+            model.InputPortModels = inputContainer.Query<DataPort>().ToList().Select(port => port.Save()).ToList();
+            model.OutputPortModels = outputContainer.Query<DataPort>().ToList().Select(port => port.Save()).ToList();
+            model.Position = this.GetPositionRaw();
+        }
+
+        [OnDeserialized]
+        protected virtual void OnDeserializedMethod(StreamingContext context)
+        {
+            List<PortModel> inputPortData = model.InputPortModels.ToList();
+            List<PortModel> outputPortData = model.OutputPortModels.ToList();
+
+            LoadPortTypes(inputPortData, inputContainer);
+            LoadPortTypes(outputPortData, outputContainer);
         }
 
         protected virtual void DrawTitle()
@@ -118,18 +134,21 @@ namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 
         protected virtual DataPort DrawPort(string name, Direction direction, Port.Capacity capacity, Type type)
         {
-            DataPort port = DataPort.Create<Edge>(name, Orientation.Horizontal, direction, capacity, type);
-
-            return port;
+            return DataPort.Create<Edge>(name, Orientation.Horizontal, direction, capacity, type);
         }
 
-        private void LoadPortTypes(List<PortData> portDataCollection, VisualElement portContainer)
+        private void LoadPortTypes(List<PortModel> portDataCollection, VisualElement portContainer)
         {
             List<DataPort> ports = portContainer.Query<DataPort>().ToList();
             for (int i = 0; i < ports.Count; i++)
             {
                 ports[i].Load(portDataCollection[i]);
             }
+        }
+
+        private void OnPointerMove(PointerMoveEvent evt)
+        {
+            model.Position = this.GetPositionRaw();
         }
     }
 }

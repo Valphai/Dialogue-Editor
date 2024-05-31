@@ -12,7 +12,7 @@ using System;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Nodes
 {
-    public class ChoiceNode : BaseNode
+    internal class ChoiceNode : BaseNode
     {
         private List<DialogueChoice> choices = new List<DialogueChoice>();
         private VisualElement buttonedPortsContainer;

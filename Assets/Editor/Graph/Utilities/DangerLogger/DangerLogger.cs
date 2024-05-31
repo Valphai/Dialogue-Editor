@@ -1,5 +1,4 @@
 using Chocolate4.Dialogue.Edit.Graph.Nodes;
-using Chocolate4.Dialogue.Edit.Graph.Utilities;
 using Chocolate4.Dialogue.Runtime.Utilities;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +7,7 @@ using System;
 
 namespace Chocolate4.Dialogue.Edit.Graph.Utilities.DangerLogger
 {
-    public static class DangerLogger
+    internal static class DangerLogger
     {
         private static List<DangerFlag> dangerFlags = new List<DangerFlag>();
         private static List<Func<bool>> fixConditions = new List<Func<bool>>();
